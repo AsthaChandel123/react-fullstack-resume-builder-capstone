@@ -1,4 +1,11 @@
 {
+  "name": "student-portfolio-builder",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix resume-builder start",
+    "test": "npm --prefix resume-builder test -- --watchAll=false",
+    "build": "npm --prefix resume-builder build"
+  },
   "dependencies": {
     "autoprefixer": "^10.4.21",
     "framer-motion": "^12.23.12",
