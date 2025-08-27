@@ -5,7 +5,7 @@ A simple React application where users can input personal information and downlo
 ## Getting Started
 
 ```bash
-npm install
+npm install --prefix resume-builder
 npm start
 ```
 
