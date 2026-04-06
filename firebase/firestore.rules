@@ -3,11 +3,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Criteria: anyone can read active criteria, authenticated users can create
+    // Criteria: employer reads own (any status), others read active only, authenticated create
     match /criteria/{code} {
-      allow read: if resource.data.status == 'active'
-        || resource.data.status == 'paused'
-        || resource.data.status == 'closed';
+      allow read: if resource.data.employerId == request.auth.uid
+        || resource.data.status == 'active';
       allow create: if request.auth != null;
       allow update: if request.auth != null
         && resource.data.employerId == request.auth.uid;

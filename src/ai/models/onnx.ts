@@ -1,13 +1,20 @@
 /**
- * ONNX Runtime Web -- MiniLM-L6-v2 Sentence Embeddings
+ * ONNX Runtime Web -- E5-small-v2 Sentence Embeddings
  *
- * Loads all-MiniLM-L6-v2 ONNX model for 384-dim sentence embeddings.
+ * Loads E5-small-v2 ONNX model for 384-dim sentence embeddings.
  * Runs in WASM (any browser), no WebGPU required.
- * Model ~23MB quantized, cached in browser after first download.
+ * Model ~67M params quantized, cached in browser after first download.
+ *
+ * E5 uses prefix-based encoding:
+ * - "query: " prefix for search queries (JD text)
+ * - "passage: " prefix for documents (resume text)
  *
  * Citation:
- * - Wang, W. et al. (2020). "MiniLM: Deep Self-Attention Distillation for
- *   Task-Agnostic Compression of Pre-Trained Transformers." NeurIPS.
+ * - Wang, L. et al. (2024). "Text Embeddings by Weakly-Supervised
+ *   Contrastive Pre-training." ACL 2024.
+ * - Previously used: Wang, W. et al. (2020). "MiniLM: Deep Self-Attention
+ *   Distillation for Task-Agnostic Compression of Pre-Trained Transformers."
+ *   NeurIPS.
  * - Reimers, N. & Gurevych, I. (2019). "Sentence-BERT: Sentence Embeddings
  *   using Siamese BERT-Networks." EMNLP.
  * - ONNX Runtime Web: onnxruntime.ai
@@ -15,11 +22,11 @@
 
 import type { InferenceSession, Tensor } from 'onnxruntime-web';
 
-// Model hosted on Hugging Face ONNX export
+// E5-small-v2 model hosted on Hugging Face ONNX export
 const MODEL_URL =
-  'https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx';
+  'https://huggingface.co/Xenova/e5-small-v2/resolve/main/onnx/model_quantized.onnx';
 const TOKENIZER_URL =
-  'https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/tokenizer.json';
+  'https://huggingface.co/Xenova/e5-small-v2/resolve/main/tokenizer.json';
 
 let sessionInstance: InferenceSession | null = null;
 let tokenizerData: TokenizerData | null = null;
@@ -31,7 +38,7 @@ interface TokenizerData {
 
 /**
  * Simple WordPiece tokenizer (subset of BERT tokenizer).
- * Handles basic tokenization for MiniLM.
+ * Handles basic tokenization for E5/BERT models.
  */
 function tokenize(text: string, vocab: Record<string, number>, maxLen = 128): {
   inputIds: number[];
@@ -131,14 +138,22 @@ export async function loadModel(): Promise<void> {
 /**
  * Generate a 384-dim embedding for a text string.
  * Model must be loaded first via loadModel().
+ *
+ * E5 models use prefix-based encoding for best accuracy:
+ * - prefix='query' for search queries (e.g. JD text)
+ * - prefix='passage' for documents (e.g. resume text)
+ * - No prefix for backwards compatibility with other callers.
+ *
+ * Citation: Wang, L. et al. (2024). ACL 2024.
  */
-export async function embed(text: string): Promise<Float32Array> {
+export async function embed(text: string, prefix?: 'query' | 'passage'): Promise<Float32Array> {
   if (!sessionInstance || !tokenizerData) {
     throw new Error('Model not loaded. Call loadModel() first.');
   }
 
   const ort = await import('onnxruntime-web');
-  const { inputIds, attentionMask } = tokenize(text, tokenizerData.vocab);
+  const inputText = prefix ? `${prefix}: ${text}` : text;
+  const { inputIds, attentionMask } = tokenize(inputText, tokenizerData.vocab);
 
   const inputIdsTensor = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(BigInt)), [1, inputIds.length]);
   const attentionMaskTensor = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(BigInt)), [1, attentionMask.length]);
@@ -152,7 +167,7 @@ export async function embed(text: string): Promise<Float32Array> {
 
   const results = await sessionInstance.run(feeds);
 
-  // MiniLM outputs last_hidden_state [1, seq_len, 384]
+  // E5 outputs last_hidden_state [1, seq_len, 384]
   // Mean pooling over non-padding tokens
   const output = results['last_hidden_state'] ?? Object.values(results)[0];
   const data = output.data as Float32Array;

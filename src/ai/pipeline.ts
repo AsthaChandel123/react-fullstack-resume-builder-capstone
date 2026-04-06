@@ -1,15 +1,14 @@
 /**
- * AI Analysis Pipeline Orchestrator
+ * AI Analysis Pipeline (Legacy Linear)
  *
- * Runs the 4-layer analysis pipeline: Parse -> L1 -> L2 -> L3 -> Score.
- * Supports progressive callbacks so the UI updates as each layer completes.
- * Handles batch processing of multiple resumes.
+ * @deprecated Use `analyzeResumeAgentic` from `./orchestrator` instead.
+ * The new agentic pipeline runs agents in a DAG with parallel branches,
+ * skills taxonomy matching, JD processing, and ReAct traces.
  *
- * Pipeline order (spec section 6.3):
+ * This file is kept for backwards compatibility with existing callers.
+ *
+ * Legacy pipeline order:
  *   L1_NLPAgent -> L2_EmbedAgent -> L3_ReasonAgent -> L4_FallbackAgent -> ScoreAgent -> DistanceAgent
- *
- * Progressive: L1 scores appear instantly. L2 enriches within 2s.
- * L3 adds reasoning flags over 5-15s. Dashboard updates progressively.
  */
 
 import type { CandidateScores, AnalysisLayer, RedFlag } from '../store/types';

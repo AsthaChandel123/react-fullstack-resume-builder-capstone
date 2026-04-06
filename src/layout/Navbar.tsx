@@ -27,14 +27,14 @@ export function Navbar() {
   const { theme, toggle } = useTheme();
   const { pathname } = useLocation();
   const [mode, setMode] = useState<Mode>(() => getModeFromPath(pathname));
-  const [aiLevel, setAiLevel] = useState<'L2' | 'L3'>(() =>
-    (localStorage.getItem('resumeai_ai_level') as 'L2' | 'L3') ?? 'L2'
+  const [aiLevel, setAiLevel] = useState<'L1' | 'L2' | 'L3' | 'L4'>(() =>
+    (localStorage.getItem('resumeai_ai_level') as 'L1' | 'L2' | 'L3' | 'L4') ?? 'L2'
   );
 
   // Periodically check if L3 became available (background download completed)
   useEffect(() => {
     const check = () => {
-      if (isModelReady() && aiLevel !== 'L3') {
+      if (isModelReady() && (aiLevel === 'L1' || aiLevel === 'L2')) {
         setAiLevel('L3');
         localStorage.setItem('resumeai_ai_level', 'L3');
       }
@@ -125,20 +125,40 @@ export function Navbar() {
           </Link>
         ))}
 
-        {/* AI Level indicator */}
+        {/* AI Level indicator -- shows what's actually running */}
         <div
           className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
           style={{
-            backgroundColor: aiLevel === 'L3' ? 'rgba(34,197,94,0.2)' : 'rgba(234,179,8,0.2)',
-            color: aiLevel === 'L3' ? '#22c55e' : '#eab308',
+            backgroundColor: aiLevel === 'L3' ? 'rgba(34,197,94,0.2)'
+              : aiLevel === 'L4' ? 'rgba(99,102,241,0.2)'
+              : 'rgba(234,179,8,0.2)',
+            color: aiLevel === 'L3' ? '#22c55e'
+              : aiLevel === 'L4' ? '#6366f1'
+              : '#eab308',
           }}
-          title={aiLevel === 'L3' ? 'Gemma 4 E2B active' : 'TF-IDF analysis active'}
+          title={
+            aiLevel === 'L3' ? 'Gemma 4 E2B (local, private)'
+              : aiLevel === 'L4' ? 'Gemini API (cloud)'
+              : aiLevel === 'L2' ? 'Embeddings + TF-IDF'
+              : 'Keyword analysis only'
+          }
+          role="status"
+          aria-label={`AI engine: ${
+            aiLevel === 'L3' ? 'Gemma 4 local model'
+              : aiLevel === 'L4' ? 'Gemini cloud API'
+              : aiLevel === 'L2' ? 'Embedding analysis'
+              : 'Basic keyword analysis'
+          }`}
         >
           <span
             className="inline-block h-2 w-2 rounded-full"
-            style={{ backgroundColor: aiLevel === 'L3' ? '#22c55e' : '#eab308' }}
+            style={{
+              backgroundColor: aiLevel === 'L3' ? '#22c55e'
+                : aiLevel === 'L4' ? '#6366f1'
+                : '#eab308',
+            }}
           />
-          {aiLevel === 'L3' ? 'Gemma 4' : 'L2'}
+          {aiLevel === 'L3' ? 'Gemma 4' : aiLevel === 'L4' ? 'Gemini' : aiLevel}
         </div>
 
         <button

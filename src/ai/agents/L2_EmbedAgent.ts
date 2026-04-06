@@ -1,14 +1,16 @@
 /**
- * L2 Embedding Agent -- Semantic similarity via ONNX MiniLM-L6-v2.
+ * L2 Embedding Agent -- Semantic similarity via ONNX E5-small-v2.
  *
- * Primary: ONNX Runtime Web + all-MiniLM-L6-v2 (384-dim embeddings, ~23MB model).
+ * Primary: ONNX Runtime Web + E5-small-v2 (384-dim embeddings, ~67M params).
  * Fallback: TF-IDF cosine similarity (zero model download, runs anywhere).
  *
  * The agent tries ONNX first. If model fails to load (offline without cache,
  * old browser, etc.), it transparently falls back to TF-IDF.
  *
  * Citations:
- * - Wang, W. et al. (2020). MiniLM. NeurIPS.
+ * - Wang, L. et al. (2024). "Text Embeddings by Weakly-Supervised
+ *   Contrastive Pre-training." ACL 2024.
+ * - Previously used: Wang, W. et al. (2020). MiniLM. NeurIPS.
  * - Reimers & Gurevych (2019). Sentence-BERT. EMNLP.
  * - Salton, G. (1975). A Theory of Indexing. SIAM.
  * - scikit-learn cosine_similarity: scikit-learn.org/stable/modules/metrics.html
@@ -25,7 +27,7 @@ import {
 export interface L2Result {
   semanticScore: number;
   semanticMatches: string[];
-  method: 'onnx-minilm' | 'tfidf-fallback';
+  method: 'onnx-e5' | 'tfidf-fallback';
 }
 
 /**
@@ -80,8 +82,8 @@ function analyzeWithTfIdf(resumeText: string, jdText: string): L2Result {
 }
 
 /**
- * ONNX MiniLM-L6-v2 embedding similarity.
- * Citation: Wang et al. (2020) MiniLM, NeurIPS; Reimers & Gurevych (2019) SBERT.
+ * ONNX E5-small-v2 embedding similarity.
+ * Citation: Wang, L. et al. (2024) ACL; Reimers & Gurevych (2019) SBERT.
  */
 async function analyzeWithOnnx(
   resumeText: string,
@@ -92,20 +94,20 @@ async function analyzeWithOnnx(
   }
 
   const [resumeEmbed, jdEmbed] = await Promise.all([
-    embed(resumeText),
-    embed(jdText),
+    embed(resumeText, 'passage'),
+    embed(jdText, 'query'),
   ]);
 
   const semanticScore = embeddingCosineSimilarity(resumeEmbed, jdEmbed);
   const semanticMatches = findSemanticMatches(resumeText, jdText);
 
-  return { semanticScore, semanticMatches, method: 'onnx-minilm' };
+  return { semanticScore, semanticMatches, method: 'onnx-e5' };
 }
 
 /**
  * Analyze resume vs JD using L2 semantic embeddings.
  *
- * Tries ONNX MiniLM first, falls back to TF-IDF on failure.
+ * Tries ONNX E5-small-v2 first, falls back to TF-IDF on failure.
  * Both methods produce a cosine similarity score in [0, 1].
  */
 export async function analyzeL2(

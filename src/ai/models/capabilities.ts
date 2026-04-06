@@ -7,7 +7,7 @@
  * | Capability     | Enables                                    |
  * |----------------|---------------------------------------------|
  * | JS only        | Student mode, form, preview, templates      |
- * | WASM           | L1 NLP + L2 MiniLM (ONNX WASM)             |
+ * | WASM           | L1 NLP + L2 E5-small (ONNX WASM)           |
  * | WebGPU         | L3 Gemma 4 E2B at full speed                    |
  * | WASM (no GPU)  | L3 Gemma 4 E2B via CPU fallback (30-60s)        |
  * | Online + key   | L4 Gemini API, Google Maps Distance         |
@@ -98,7 +98,7 @@ export async function detectCapabilities(): Promise<DeviceCapabilities> {
   const isOnline =
     typeof navigator !== 'undefined' ? navigator.onLine : false;
 
-  // L2 (ONNX MiniLM): needs WASM
+  // L2 (ONNX E5-small): needs WASM
   const canRunL2 = hasWASM;
 
   // L3 (Gemma 4 E2B Q4 ~1.5GB): needs WebGPU or WASM + at least 2GB RAM
