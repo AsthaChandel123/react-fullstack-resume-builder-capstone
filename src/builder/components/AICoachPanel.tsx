@@ -74,10 +74,12 @@ function analyzeResume(resume: ReturnType<typeof useResumeStore.getState>['resum
   total += 15;
   if (hasEducation) {
     const eduSection = resume.sections.find((s) => s.type === 'education');
-    if (eduSection && eduSection.entries.length > 0) {
+    const eduHasContent = eduSection?.entries.some((e) =>
+      Object.values(e.fields).some((v) => v.trim().length > 0),
+    ) ?? false;
+    if (eduHasContent) {
       score += 15;
     } else {
-      score += 5;
       suggestions.push({
         id: 'empty-education',
         severity: 'high',
@@ -98,10 +100,14 @@ function analyzeResume(resume: ReturnType<typeof useResumeStore.getState>['resum
   total += 20;
   const expSection = resume.sections.find((s) => s.type === 'experience');
   const projSection = resume.sections.find((s) => s.type === 'projects');
-  const expEntries = expSection?.entries.length ?? 0;
-  const projEntries = projSection?.entries.length ?? 0;
+  const expHasContent = expSection?.entries.some((e) =>
+    Object.values(e.fields).some((v) => v.trim().length > 0) || e.bullets.some((b) => b.trim().length > 0),
+  ) ?? false;
+  const projHasContent = projSection?.entries.some((e) =>
+    Object.values(e.fields).some((v) => v.trim().length > 0) || e.bullets.some((b) => b.trim().length > 0),
+  ) ?? false;
 
-  if (expEntries > 0 || projEntries > 0) {
+  if (expHasContent || projHasContent) {
     score += 15;
     // Check for quantified bullets
     const allBullets = [
@@ -136,17 +142,23 @@ function analyzeResume(resume: ReturnType<typeof useResumeStore.getState>['resum
   if (hasSkills) {
     const skillsSection = resume.sections.find((s) => s.type === 'skills');
     const skillCount = skillsSection?.entries.reduce(
-      (sum, e) => sum + e.bullets.length,
+      (sum, e) => sum + e.bullets.filter((b) => b.trim().length > 0).length,
       0,
     ) ?? 0;
-    if (skillCount > 0) {
-      score += Math.min(20, skillCount * 2);
-      if (skillCount > 15) {
+    // Also count skills in fields (tag-based input)
+    const fieldSkillCount = skillsSection?.entries.reduce(
+      (sum, e) => sum + Object.values(e.fields).filter((v) => v.trim().length > 0).length,
+      0,
+    ) ?? 0;
+    const totalSkills = skillCount + fieldSkillCount;
+    if (totalSkills > 0) {
+      score += Math.min(20, totalSkills * 2);
+      if (totalSkills > 15) {
         suggestions.push({
           id: 'too-many-skills',
           severity: 'medium',
           title: 'Trim your skills list',
-          description: `You have ${skillCount} skills listed. Claiming proficiency in too many unrelated skills triggers credibility doubt (Knouse 1994, Personnel Psychology). Focus on 8-12 relevant skills.`,
+          description: `You have ${totalSkills} skills listed. Claiming proficiency in too many unrelated skills triggers credibility doubt (Knouse 1994, Personnel Psychology). Focus on 8-12 relevant skills.`,
         });
       }
     } else {
@@ -166,13 +178,15 @@ function analyzeResume(resume: ReturnType<typeof useResumeStore.getState>['resum
     });
   }
 
-  // Section completeness
+  // Section completeness - only count sections WITH content
   total += 10;
-  const expectedSections = ['education', 'skills'];
-  const presentExpected = expectedSections.filter((t) =>
-    sectionTypes.includes(t as typeof sectionTypes[number]),
+  const sectionsWithContent = resume.sections.filter((s) =>
+    s.entries.some((e) =>
+      Object.values(e.fields).some((v) => v.trim().length > 0) ||
+      e.bullets.some((b) => b.trim().length > 0)
+    ),
   );
-  score += (presentExpected.length / expectedSections.length) * 10;
+  score += Math.min(10, (sectionsWithContent.length / 4) * 10);
 
   if (!hasExperience && !hasProjects) {
     suggestions.push({
