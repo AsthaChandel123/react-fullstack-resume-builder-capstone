@@ -91,9 +91,11 @@ export async function getOrCreateEngine(
       dtype,
       progress_callback: (event: { progress?: number; status?: string }) => {
         if (event.progress !== undefined) {
+          // Transformers.js reports progress as 0-100, normalize to 0-1
+          const normalized = event.progress > 1 ? event.progress / 100 : event.progress;
           onProgress?.({
-            progress: 0.1 + event.progress * 0.9,
-            text: event.status ?? `Downloading: ${Math.round(event.progress * 100)}%`,
+            progress: 0.1 + normalized * 0.9,
+            text: event.status ?? `Downloading: ${Math.round(normalized * 100)}%`,
           });
         }
       },

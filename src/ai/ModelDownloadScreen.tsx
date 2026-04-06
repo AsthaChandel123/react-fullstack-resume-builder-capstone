@@ -44,7 +44,7 @@ export function ModelDownloadScreen({ onReady, onSkip }: ModelDownloadScreenProp
       });
   }, [handleProgress, onReady]);
 
-  const pct = Math.round(progress * 100);
+  const pct = Math.min(100, Math.max(0, Math.round(progress * 100)));
 
   return (
     <div
