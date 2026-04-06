@@ -8,6 +8,7 @@ type Mode = 'student' | 'employer';
 const STUDENT_LINKS = [
   { to: '/builder', label: 'Resume Builder' },
   { to: '/bridge/dashboard', label: 'My Applications' },
+  { to: '/pitch', label: 'Pitch Deck' },
 ] as const;
 
 const EMPLOYER_LINKS = [
