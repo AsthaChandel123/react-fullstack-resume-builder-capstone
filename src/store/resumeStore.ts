@@ -99,6 +99,7 @@ interface ResumeState {
     fromIndex: number,
     toIndex: number,
   ) => void;
+  reset: () => void;
   load: () => Promise<void>;
 }
 
@@ -226,6 +227,13 @@ export const useResumeStore = create<ResumeState>((set) => ({
         return { ...sec, entries };
       });
       const resume = stamp({ ...s.resume, sections });
+      storage.save(resume);
+      return { resume };
+    }),
+
+  reset: () =>
+    set(() => {
+      const resume = createDefaultResume();
       storage.save(resume);
       return { resume };
     }),
