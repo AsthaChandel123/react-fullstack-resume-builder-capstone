@@ -210,7 +210,46 @@ function analyzeResume(resume: ReturnType<typeof useResumeStore.getState>['resum
     });
   }
 
-  const finalScore = total > 0 ? Math.round((score / total) * 100) : 0;
+  // Quality penalties - even a "complete" resume has room for improvement
+  const allBullets = resume.sections.flatMap((s) =>
+    s.entries.flatMap((e) => e.bullets.filter((b) => b.trim().length > 0)),
+  );
+  const totalBullets = allBullets.length;
+
+  // Penalty: too few bullets (less than 6 total across all sections)
+  if (totalBullets < 6) {
+    suggestions.push({
+      id: 'few-bullets',
+      severity: 'tip',
+      title: 'Add more detail to your entries',
+      description: `You have ${totalBullets} bullet points total. Strong resumes have 8-15 bullets across experience and projects. Each bullet should demonstrate impact.`,
+    });
+  }
+
+  // Penalty: no action verbs at start of bullets
+  const actionVerbs = /^(built|developed|designed|led|managed|created|implemented|reduced|increased|improved|launched|deployed|migrated|optimized|integrated|automated|architected|delivered|mentored|coordinated)/i;
+  const weakBullets = allBullets.filter((b) => !actionVerbs.test(b.trim()));
+  if (weakBullets.length > 0 && totalBullets > 0) {
+    const weakPct = Math.round((weakBullets.length / totalBullets) * 100);
+    if (weakPct > 40) {
+      suggestions.push({
+        id: 'weak-bullets',
+        severity: 'medium',
+        title: 'Start bullets with strong action verbs',
+        description: `${weakPct}% of your bullets don't start with action verbs. Use "Built", "Reduced", "Led", "Implemented" instead of passive descriptions.`,
+      });
+    }
+  }
+
+  // Cap at 92% - no resume is perfect, there's always room to improve
+  let finalScore = total > 0 ? Math.round((score / total) * 100) : 0;
+  finalScore = Math.min(92, finalScore);
+
+  // If there are still suggestions, cap further
+  if (suggestions.length > 0) {
+    finalScore = Math.min(finalScore, 92 - suggestions.length * 2);
+  }
+  finalScore = Math.max(0, finalScore);
 
   // Sort: high first, then medium, then tip
   const severityOrder = { high: 0, medium: 1, tip: 2 };
