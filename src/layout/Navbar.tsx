@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { isModelReady } from '../ai/models/webllm';
 
 type Mode = 'student' | 'employer';
 
@@ -24,6 +25,22 @@ export function Navbar() {
   const { theme, toggle } = useTheme();
   const { pathname } = useLocation();
   const [mode, setMode] = useState<Mode>(() => getModeFromPath(pathname));
+  const [aiLevel, setAiLevel] = useState<'L2' | 'L3'>(() =>
+    (localStorage.getItem('resumeai_ai_level') as 'L2' | 'L3') ?? 'L2'
+  );
+
+  // Periodically check if L3 became available (background download completed)
+  useEffect(() => {
+    const check = () => {
+      if (isModelReady() && aiLevel !== 'L3') {
+        setAiLevel('L3');
+        localStorage.setItem('resumeai_ai_level', 'L3');
+      }
+    };
+    check();
+    const interval = setInterval(check, 5000);
+    return () => clearInterval(interval);
+  }, [aiLevel]);
 
   const links = mode === 'student' ? STUDENT_LINKS : EMPLOYER_LINKS;
 
@@ -105,6 +122,22 @@ export function Navbar() {
             {label}
           </Link>
         ))}
+
+        {/* AI Level indicator */}
+        <div
+          className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+          style={{
+            backgroundColor: aiLevel === 'L3' ? 'rgba(34,197,94,0.2)' : 'rgba(234,179,8,0.2)',
+            color: aiLevel === 'L3' ? '#22c55e' : '#eab308',
+          }}
+          title={aiLevel === 'L3' ? 'Gemma 4 E2B active' : 'TF-IDF analysis active'}
+        >
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ backgroundColor: aiLevel === 'L3' ? '#22c55e' : '#eab308' }}
+          />
+          {aiLevel === 'L3' ? 'Gemma 4' : 'L2'}
+        </div>
 
         <button
           onClick={toggle}

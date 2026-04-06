@@ -43,15 +43,20 @@ function Loading() {
 }
 
 export function App() {
-  const [modelState, setModelState] = useState<'checking' | 'downloading' | 'ready' | 'skipped'>('checking');
+  const [modelState, setModelState] = useState<'checking' | 'downloading' | 'ready'>(() => {
+    if (localStorage.getItem('resumeai_ai_ready') === '1') return 'ready';
+    return 'checking';
+  });
 
   useEffect(() => {
+    if (modelState !== 'checking') return;
     if (isModelReady()) {
+      localStorage.setItem('resumeai_ai_ready', '1');
       setModelState('ready');
     } else {
       setModelState('downloading');
     }
-  }, []);
+  }, [modelState]);
 
   if (modelState === 'checking') {
     return <Loading />;
@@ -60,8 +65,11 @@ export function App() {
   if (modelState === 'downloading') {
     return (
       <ModelDownloadScreen
-        onReady={() => setModelState('ready')}
-        onSkip={() => setModelState('skipped')}
+        onReady={(level) => {
+          localStorage.setItem('resumeai_ai_ready', '1');
+          localStorage.setItem('resumeai_ai_level', level);
+          setModelState('ready');
+        }}
       />
     );
   }

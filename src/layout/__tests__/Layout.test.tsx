@@ -3,15 +3,44 @@
  * Covers: branding, navigation links, theme toggle, skip-to-content, logo.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+
+vi.mock('../../ai/models/webllm', () => ({
+  isModelReady: () => false,
+}));
+
+// Ensure localStorage exists before component imports
+const store: Record<string, string> = {};
+vi.stubGlobal('localStorage', {
+  getItem: (k: string) => store[k] ?? null,
+  setItem: (k: string, v: string) => { store[k] = v; },
+  removeItem: (k: string) => { delete store[k]; },
+  clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+  length: 0,
+  key: () => null,
+});
+
 import { Layout } from '../Layout';
 
 describe('Layout with Navbar and Footer', () => {
   beforeEach(() => {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('light');
+    // Ensure localStorage is available in jsdom
+    if (!window.localStorage) {
+      const store: Record<string, string> = {};
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: (k: string) => store[k] ?? null,
+          setItem: (k: string, v: string) => { store[k] = v; },
+          removeItem: (k: string) => { delete store[k]; },
+          clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+        },
+        writable: true,
+      });
+    }
   });
 
   function renderLayout() {
