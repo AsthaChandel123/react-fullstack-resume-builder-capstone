@@ -3,11 +3,11 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, updateDoc } from 'firebase/firestore';
 import { initFirebase, isFirebaseConfigured, getDb } from '../../firebase/config';
 import { getCurrentUser } from '../../firebase/auth';
+import { ensureAuth } from '../../firebase/autoAuth';
 import { DEFAULT_WEIGHTS, type CustomSignal, type TestConfig } from '../types';
 import WeightEditor from './WeightEditor';
 import CustomSignalEditor from './CustomSignalEditor';
 import SharePanel from './SharePanel';
-import { AuthModal } from './AuthModal';
 
 function extractSkillsFromJD(text: string): { required: string[]; preferred: string[] } {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -50,7 +50,6 @@ export default function CriteriaPublishForm() {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
   const [shortCode, setShortCode] = useState('');
-  const [showAuth, setShowAuth] = useState(false);
   const [criteriaStatus, setCriteriaStatus] = useState<'active' | 'paused' | 'closed'>('active');
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [statusError, setStatusError] = useState('');
@@ -98,8 +97,8 @@ export default function CriteriaPublishForm() {
 
     if (!isFirebaseConfigured()) { setError('Firebase is not configured. Set VITE_FIREBASE_* env vars.'); return; }
 
-    const user = getCurrentUser();
-    if (!user) { setShowAuth(true); return; }
+    const user = getCurrentUser() ?? await ensureAuth();
+    if (!user) { setError('Could not authenticate.'); return; }
 
     setPublishing(true);
     try {
@@ -249,13 +248,6 @@ export default function CriteriaPublishForm() {
   }
 
   return (
-    <>
-    {showAuth && (
-      <AuthModal
-        onAuth={() => { setShowAuth(false); publish(); }}
-        onClose={() => setShowAuth(false)}
-      />
-    )}
     <form
       onSubmit={(e) => { e.preventDefault(); publish(); }}
       className="space-y-6 max-w-2xl mx-auto"
@@ -384,7 +376,6 @@ export default function CriteriaPublishForm() {
         {publishing ? 'Publishing...' : 'Publish Criteria'}
       </button>
     </form>
-    </>
   );
 }
 

@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getDb, initFirebase, isFirebaseConfigured } from '../../firebase/config';
-import { getCurrentUser } from '../../firebase/auth';
+import { ensureAuth } from '../../firebase/autoAuth';
 import type { MatchSignal } from '../types';
-import { AuthModal } from './AuthModal';
 
 type SortKey = 'candidateName' | 'resumeScore' | 'verifiedScore' | 'integrityScore' | 'gap' | 'status' | 'sentAt';
 type SortDir = 'asc' | 'desc';
@@ -28,8 +27,6 @@ export default function EmployerMatchDashboard() {
   const [replying, setReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
   const [repliedIds, setRepliedIds] = useState<Set<string>>(new Set());
-  const [showAuth, setShowAuth] = useState(false);
-
   useEffect(() => {
     if (!isFirebaseConfigured()) {
       setError('Firebase not configured. Set VITE_FIREBASE_* env vars.');
@@ -37,30 +34,29 @@ export default function EmployerMatchDashboard() {
       return;
     }
 
-    const user = getCurrentUser();
-    if (!user) {
-      setShowAuth(true);
-      setLoading(false);
-      return;
-    }
+    let unsub: (() => void) | undefined;
 
-    const db = getDb();
-    const q = query(
-      collection(db, 'matches'),
-      where('employerId', '==', user.uid),
-      orderBy('sentAt', 'desc')
-    );
+    ensureAuth().then(user => {
+      if (!user) { setError('Could not connect.'); setLoading(false); return; }
 
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
-      setMatches(data);
-      setLoading(false);
-    }, (err) => {
-      setError(err.message);
-      setLoading(false);
+      const db = getDb();
+      const q = query(
+        collection(db, 'matches'),
+        where('employerId', '==', user.uid),
+        orderBy('sentAt', 'desc')
+      );
+
+      unsub = onSnapshot(q, (snap) => {
+        const data = snap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
+        setMatches(data);
+        setLoading(false);
+      }, (err) => {
+        setError(err.message);
+        setLoading(false);
+      });
     });
 
-    return unsub;
+    return () => { unsub?.(); };
   }, []);
 
   const handleSort = useCallback((key: SortKey) => {
@@ -137,15 +133,6 @@ export default function EmployerMatchDashboard() {
       {label}{sortArrow(key)}
     </button>
   );
-
-  if (showAuth) {
-    return (
-      <AuthModal
-        onAuth={() => { setShowAuth(false); window.location.reload(); }}
-        onClose={() => setShowAuth(false)}
-      />
-    );
-  }
 
   if (loading) {
     return (

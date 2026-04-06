@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../../firebase/config';
-import { signInAnon, getCurrentUser } from '../../firebase/auth';
+import { getCurrentUser } from '../../firebase/auth';
+import { ensureAuth } from '../../firebase/autoAuth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { initFirebase } from '../../firebase/config';
 import { useBridgeStore } from '../store';
@@ -113,9 +114,7 @@ export function TestEngine({ criteriaCode }: Props) {
         }
 
         // Ensure anonymous auth
-        if (!getCurrentUser()) {
-          await signInAnon();
-        }
+        await ensureAuth();
 
         // Load criteria from Firestore
         const db = getDb();

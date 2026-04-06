@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../../firebase/config';
-import { getCurrentUser } from '../../firebase/auth';
+import { ensureAuth } from '../../firebase/autoAuth';
 import type { MatchSignal, BridgeCriteria } from '../types';
-import { AuthModal } from './AuthModal';
 
 interface EmployerReplyData {
   message: string;
@@ -22,8 +21,6 @@ export default function CandidateDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [jobTitles, setJobTitles] = useState<Record<string, string>>({});
   const [replies, setReplies] = useState<Record<string, EmployerReplyData>>({});
-  const [showAuth, setShowAuth] = useState(false);
-
   useEffect(() => {
     if (!isFirebaseConfigured()) {
       setError('Firebase not configured. Set VITE_FIREBASE_* env vars.');
@@ -31,20 +28,18 @@ export default function CandidateDashboard() {
       return;
     }
 
-    const user = getCurrentUser();
-    if (!user) {
-      setShowAuth(true);
-      setLoading(false);
-      return;
-    }
+    let unsub: (() => void) | undefined;
 
-    const db = getDb();
-    const q = query(
-      collection(db, 'matches'),
-      where('candidateId', '==', user.uid)
-    );
+    ensureAuth().then(user => {
+      if (!user) { setError('Could not connect.'); setLoading(false); return; }
 
-    const unsub = onSnapshot(q, async (snap) => {
+      const db = getDb();
+      const q = query(
+        collection(db, 'matches'),
+        where('candidateId', '==', user.uid)
+      );
+
+      unsub = onSnapshot(q, async (snap) => {
       const data = snap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
       setMatches(data);
       setLoading(false);
@@ -89,12 +84,13 @@ export default function CandidateDashboard() {
         })
       );
       setReplies((prev) => ({ ...prev, ...replyData }));
-    }, (err) => {
-      setError(err.message);
-      setLoading(false);
+      }, (err) => {
+        setError(err.message);
+        setLoading(false);
+      });
     });
 
-    return unsub;
+    return () => { unsub?.(); };
   }, []);
 
   const gapColor = (gap: number) => {
@@ -108,15 +104,6 @@ export default function CandidateDashboard() {
     const date = d instanceof Date ? d : new Date(d as string);
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
-
-  if (showAuth) {
-    return (
-      <AuthModal
-        onAuth={() => { setShowAuth(false); window.location.reload(); }}
-        onClose={() => setShowAuth(false)}
-      />
-    );
-  }
 
   if (loading) {
     return (
