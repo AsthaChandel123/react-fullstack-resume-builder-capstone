@@ -1,7 +1,7 @@
 /**
  * L4 Fallback Agent -- Gemini 2.5 Pro API.
  *
- * Only invoked when L3 (Gemma 3 WebLLM) fails entirely.
+ * Only invoked when L3 (Gemma 4 E2B WebLLM) fails entirely.
  * Uses the same prompt templates as L3 for consistency.
  * Requires user-provided API key (stored in localStorage, never transmitted elsewhere).
  *

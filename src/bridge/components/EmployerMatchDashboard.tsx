@@ -4,6 +4,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getDb, initFirebase, isFirebaseConfigured } from '../../firebase/config';
 import { getCurrentUser } from '../../firebase/auth';
 import type { MatchSignal } from '../types';
+import { AuthModal } from './AuthModal';
 
 type SortKey = 'candidateName' | 'resumeScore' | 'verifiedScore' | 'integrityScore' | 'gap' | 'status' | 'sentAt';
 type SortDir = 'asc' | 'desc';
@@ -27,6 +28,7 @@ export default function EmployerMatchDashboard() {
   const [replying, setReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
   const [repliedIds, setRepliedIds] = useState<Set<string>>(new Set());
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -37,14 +39,14 @@ export default function EmployerMatchDashboard() {
 
     const user = getCurrentUser();
     if (!user) {
-      setError('Sign in to view match signals.');
+      setShowAuth(true);
       setLoading(false);
       return;
     }
 
     const db = getDb();
     const q = query(
-      collection(db, 'matchSignals'),
+      collection(db, 'matches'),
       where('employerId', '==', user.uid),
       orderBy('sentAt', 'desc')
     );
@@ -154,6 +156,13 @@ export default function EmployerMatchDashboard() {
   }
 
   return (
+    <>
+    {showAuth && (
+      <AuthModal
+        onAuth={() => { setShowAuth(false); window.location.reload(); }}
+        onClose={() => setShowAuth(false)}
+      />
+    )}
     <div className="max-w-6xl mx-auto">
       <h2 className="text-xl font-bold mb-4">Incoming Match Signals</h2>
 
@@ -288,5 +297,6 @@ export default function EmployerMatchDashboard() {
         </div>
       )}
     </div>
+    </>
   );
 }

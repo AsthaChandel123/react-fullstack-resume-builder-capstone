@@ -1,7 +1,7 @@
 /**
- * L3 Reasoning Agent -- Gemma 3 via WebLLM.
+ * L3 Reasoning Agent -- Gemma 4 E2B via WebLLM.
  *
- * Loads Gemma-3-1B-it-q4f16_1-MLC in the browser via @mlc-ai/web-llm.
+ * Loads gemma-4-E2B-it-ONNX in the browser via @mlc-ai/web-llm.
  * Runs on WebGPU (fast) or WASM CPU fallback (30-60s per analysis).
  * Model ~600MB, cached in IndexedDB after first download.
  *
@@ -165,7 +165,7 @@ function parseRefinementResponse(response: string): Omit<L3Result, 'redFlags'> {
 }
 
 /**
- * Run full L3 analysis using Gemma 3 via WebLLM.
+ * Run full L3 analysis using Gemma 4 E2B via WebLLM.
  *
  * Steps:
  * 1. Load engine (first time: ~600MB download, subsequent: instant from cache)

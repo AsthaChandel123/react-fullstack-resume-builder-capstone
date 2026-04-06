@@ -3,6 +3,7 @@ import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from 'fire
 import { getDb, isFirebaseConfigured } from '../../firebase/config';
 import { getCurrentUser } from '../../firebase/auth';
 import type { MatchSignal, BridgeCriteria } from '../types';
+import { AuthModal } from './AuthModal';
 
 interface EmployerReplyData {
   message: string;
@@ -21,6 +22,7 @@ export default function CandidateDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [jobTitles, setJobTitles] = useState<Record<string, string>>({});
   const [replies, setReplies] = useState<Record<string, EmployerReplyData>>({});
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -31,14 +33,14 @@ export default function CandidateDashboard() {
 
     const user = getCurrentUser();
     if (!user) {
-      setError('Sign in to view your applications.');
+      setShowAuth(true);
       setLoading(false);
       return;
     }
 
     const db = getDb();
     const q = query(
-      collection(db, 'matchSignals'),
+      collection(db, 'matches'),
       where('candidateId', '==', user.uid)
     );
 
@@ -143,6 +145,13 @@ export default function CandidateDashboard() {
   }
 
   return (
+    <>
+    {showAuth && (
+      <AuthModal
+        onAuth={() => { setShowAuth(false); window.location.reload(); }}
+        onClose={() => setShowAuth(false)}
+      />
+    )}
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold">My Applications</h2>
@@ -212,5 +221,6 @@ export default function CandidateDashboard() {
         ))}
       </div>
     </div>
+    </>
   );
 }

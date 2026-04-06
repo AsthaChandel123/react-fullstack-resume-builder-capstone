@@ -2,6 +2,8 @@ import {
   signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut as fbSignOut,
   onAuthStateChanged,
   type User,
@@ -21,6 +23,12 @@ export async function signInEmail(email: string, password: string): Promise<User
 
 export async function registerEmail(email: string, password: string): Promise<User> {
   const { user } = await createUserWithEmailAndPassword(getAppAuth(), email, password);
+  return user;
+}
+
+export async function signInWithGoogle(): Promise<User> {
+  const provider = new GoogleAuthProvider();
+  const { user } = await signInWithPopup(getAppAuth(), provider);
   return user;
 }
 

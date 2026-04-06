@@ -50,7 +50,7 @@ export type ProgressCallback = (progress: PipelineProgress) => void;
  * Pipeline stages:
  * 1. L1 (NLP): instant keyword + section + entity extraction
  * 2. L2 (Embed): ONNX MiniLM-L6-v2 embeddings, TF-IDF fallback
- * 3. L3 (Reason): Gemma 3 1B via WebLLM (WebGPU/WASM)
+ * 3. L3 (Reason): Gemma 4 E2B 1B via WebLLM (WebGPU/WASM)
  * 4. L4 (Fallback): Gemini 2.5 Pro API -- only if L3 fails entirely
  * 5. Score: weighted composite per spec section 6.13
  * 6. Distance: Google Maps (optional, async)
@@ -78,13 +78,13 @@ export async function analyzeResume(
   }
   onProgress?.({ candidateId, layer: 'L2', scores: null, redFlags: [] });
 
-  // --- Layer 3: Reasoning (Gemma 3 via WebLLM) ---
+  // --- Layer 3: Reasoning (Gemma 4 E2B via WebLLM) ---
   let l3: L3Result | null = null;
   const capabilities = await detectCapabilities();
 
   if (capabilities.canRunL3) {
     try {
-      // Try Gemma 3 locally via WebLLM
+      // Try Gemma 4 E2B locally via WebLLM
       l3 = await analyzeL3(resumeText, jdText);
       redFlags = l3.redFlags;
     } catch {

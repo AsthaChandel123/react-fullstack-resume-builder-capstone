@@ -119,7 +119,7 @@ export function TestEngine({ criteriaCode }: Props) {
 
         // Load criteria from Firestore
         const db = getDb();
-        const snap = await getDoc(doc(db, 'bridge_criteria', criteriaCode));
+        const snap = await getDoc(doc(db, 'criteria', criteriaCode));
         if (!snap.exists()) {
           if (!cancelled) {
             setError('Criteria not found. Check the link and try again.');

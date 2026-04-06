@@ -8,8 +8,8 @@
  * |----------------|---------------------------------------------|
  * | JS only        | Student mode, form, preview, templates      |
  * | WASM           | L1 NLP + L2 MiniLM (ONNX WASM)             |
- * | WebGPU         | L3 Gemma 3 at full speed                    |
- * | WASM (no GPU)  | L3 Gemma 3 via CPU fallback (30-60s)        |
+ * | WebGPU         | L3 Gemma 4 E2B at full speed                    |
+ * | WASM (no GPU)  | L3 Gemma 4 E2B via CPU fallback (30-60s)        |
  * | Online + key   | L4 Gemini API, Google Maps Distance         |
  */
 
@@ -20,7 +20,7 @@ export interface DeviceCapabilities {
   hasWASM: boolean;
   /** Estimated device RAM in GB (from navigator.deviceMemory or heuristic) */
   ramGB: number;
-  /** Whether the device can run Gemma 3 (needs WebGPU or WASM + enough RAM) */
+  /** Whether the device can run Gemma 4 E2B (needs WebGPU or WASM + enough RAM) */
   canRunL3: boolean;
   /** Whether ONNX WASM runtime is feasible (needs WASM) */
   canRunL2: boolean;
