@@ -1,6 +1,7 @@
 // /mnt/experiments/astha-resume/src/pages/CandidateDashboard.tsx
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useResumeStore } from '@/store/resumeStore';
 import {
   computeWellbeing,
@@ -97,15 +98,180 @@ function SubScoreRow({ sub }: { sub: SubScore & { key: string } }) {
 export function CandidateDashboard() {
   const resume = useResumeStore((s) => s.resume);
   const name = resume.personal.name || 'Candidate';
+  const [searchParams] = useSearchParams();
 
-  // For demo/initial state, use reasonable defaults
+  // Read from URL query params, or show empty state
+  const paramCity = searchParams.get('city');
+  const paramCommute = searchParams.get('commute');
+  const paramSalary = searchParams.get('salary');
+  const hasParams = !!(paramCity || paramCommute || paramSalary);
+
+  // Quick setup form state
+  const [formCity, setFormCity] = useState(paramCity || '');
+  const [formSalary, setFormSalary] = useState(paramSalary || '');
+  const [formCommute, setFormCommute] = useState(paramCommute || '');
+  const [setupDone, setSetupDone] = useState(hasParams);
+
+  const handleSetup = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (formCity.trim()) setSetupDone(true);
+  }, [formCity]);
+
+  // Compute skills match from resume data if available
+  const skillsMatch = useMemo(() => {
+    const skillSections = resume.sections.filter((s) => s.type === 'skills');
+    let skillCount = 0;
+    for (const sec of skillSections) {
+      for (const entry of sec.entries) {
+        const items = entry.bullets?.length ?? 0;
+        const titleWords = entry.title?.split(/[,;|]/).length ?? 0;
+        skillCount += items + titleWords;
+      }
+    }
+    if (skillCount === 0) return 0;
+    // Rough heuristic: 10+ skills = 90%, 5 = 60%, scale linearly
+    return Math.min(95, Math.round(30 + skillCount * 6.5));
+  }, [resume.sections]);
+
+  // Build input from params/form
+  const effectiveCity = paramCity || formCity.trim() || '';
+  const effectiveSalary = Number(paramSalary || formSalary) || 0;
+  const effectiveCommute = Number(paramCommute || formCommute) || 30;
+
+  // Empty state: no params and no setup done
+  if (!setupDone) {
+    return (
+      <div
+        className="mx-auto max-w-3xl p-4 sm:p-6 lg:p-8"
+        style={{
+          background: `linear-gradient(180deg, var(--saathi-bg-warm) 0%, var(--saathi-bg-cream) 100%)`,
+          minHeight: 'calc(100vh - 120px)',
+        }}
+      >
+        <h1
+          className="mb-6 text-2xl font-extrabold"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          Your Career Health
+        </h1>
+
+        <div
+          className="mb-8 rounded-xl p-6"
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--saathi-radius)',
+          }}
+        >
+          <p
+            className="mb-4 text-sm"
+            style={{ color: 'var(--text-secondary)', lineHeight: 'var(--saathi-line-height)' }}
+          >
+            Complete your Saathi conversation first, then come back for your career health check.
+          </p>
+          <Link
+            to="/builder"
+            className="inline-block min-h-[44px] rounded-xl px-6 py-2 text-sm font-medium text-white no-underline"
+            style={{
+              background: 'var(--saathi-accent-teal)',
+              borderRadius: 'var(--saathi-radius)',
+            }}
+          >
+            Go to Resume Builder
+          </Link>
+        </div>
+
+        {/* Quick setup form */}
+        <div
+          className="rounded-xl p-6"
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--saathi-radius)',
+          }}
+        >
+          <h2
+            className="mb-4 text-lg font-bold"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Quick setup
+          </h2>
+          <p
+            className="mb-4 text-xs"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Where is the office? What's the offered salary? Fill in the basics to see your career health score.
+          </p>
+          <form onSubmit={handleSetup} className="flex flex-col gap-3">
+            <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Office city
+              <input
+                type="text"
+                value={formCity}
+                onChange={(e) => setFormCity(e.target.value)}
+                placeholder="e.g. Bangalore"
+                required
+                className="mt-1 block w-full min-h-[44px] rounded-lg border px-3 py-2 text-sm"
+                style={{
+                  background: 'var(--bg-primary)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+            </label>
+            <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Offered annual salary (INR)
+              <input
+                type="number"
+                value={formSalary}
+                onChange={(e) => setFormSalary(e.target.value)}
+                placeholder="e.g. 800000"
+                className="mt-1 block w-full min-h-[44px] rounded-lg border px-3 py-2 text-sm"
+                style={{
+                  background: 'var(--bg-primary)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+            </label>
+            <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Daily commute (minutes one way)
+              <input
+                type="number"
+                value={formCommute}
+                onChange={(e) => setFormCommute(e.target.value)}
+                placeholder="e.g. 45"
+                className="mt-1 block w-full min-h-[44px] rounded-lg border px-3 py-2 text-sm"
+                style={{
+                  background: 'var(--bg-primary)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+            </label>
+            <button
+              type="submit"
+              className="mt-2 min-h-[44px] rounded-xl px-6 py-2 text-sm font-medium text-white"
+              style={{
+                background: 'var(--saathi-accent-teal)',
+                borderRadius: 'var(--saathi-radius)',
+              }}
+            >
+              Show my career health
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const [input] = useState<WellbeingInput>({
-    commuteMinutes: 30,
+    commuteMinutes: effectiveCommute,
     workHoursPerWeek: 45,
     workMode: 'hybrid',
-    offeredSalaryAnnual: 800000,
-    officeCity: 'Bangalore',
-    candidateCity: resume.personal.location || 'Bangalore',
+    offeredSalaryAnnual: effectiveSalary || 800000,
+    officeCity: effectiveCity || 'Bangalore',
+    candidateCity: resume.personal.location || effectiveCity || 'Bangalore',
     industry: 'technology',
     commuteMode: 'transit',
     isRelocation: false,
@@ -113,8 +279,6 @@ export function CandidateDashboard() {
 
   const result: WellbeingResult = useMemo(() => computeWellbeing(input), [input]);
 
-  // Simple skills match placeholder (to be wired to orchestrator)
-  const skillsMatch = 72;
   const overallFit = Math.round((skillsMatch + result.composite) / 2);
 
   const subscoreEntries = Object.entries(result.subscores).map(([key, sub]) => ({

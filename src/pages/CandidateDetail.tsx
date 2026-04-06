@@ -74,7 +74,28 @@ export function CandidateDetail() {
             {candidate.name}
           </h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Status: {candidate.analysisStatus}
+            <span
+              className={
+                candidate.analysisStatus !== 'done' && candidate.analysisStatus !== 'error'
+                  ? 'animate-pulse'
+                  : ''
+              }
+            >
+              Status:{' '}
+              {candidate.analysisStatus === 'l1'
+                ? 'Analyzing keywords...'
+                : candidate.analysisStatus === 'l2'
+                  ? 'Computing embeddings...'
+                  : candidate.analysisStatus === 'l3'
+                    ? 'Deep analysis...'
+                    : candidate.analysisStatus === 'done'
+                      ? 'Complete'
+                      : candidate.analysisStatus === 'error'
+                        ? 'Analysis failed'
+                        : candidate.analysisStatus === 'pending'
+                          ? 'Queued for analysis...'
+                          : candidate.analysisStatus}
+            </span>
           </p>
         </div>
         <ScoreBadge score={candidate.scores.overall} label="Overall ATS Score" />

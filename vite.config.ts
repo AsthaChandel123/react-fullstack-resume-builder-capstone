@@ -27,7 +27,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['index.html', 'assets/index-*.js', 'assets/vendor-*.js', 'assets/state-*.js', '**/*.css', '**/*.svg'],
+      maximumFileSizeToCacheInBytes: 500_000, // skip chunks >500KB (ONNX, transformers)
         runtimeCaching: [
         ],
       },
@@ -44,6 +45,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           state: ['zustand'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/functions'],
         },
       },
     },

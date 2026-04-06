@@ -5,65 +5,284 @@ import { useResumeStore } from '@/store/resumeStore';
 import {
   createConversation,
   processUserInput,
+  loadFromStorage,
+  clearStorage,
   type ConversationState,
+  type ChatMessage,
 } from '../engine/slotMachine';
 import { slotsToResume } from '../engine/resumeGenerator';
+import { getResponse } from '../engine/responseBank';
 import { isSpeechSupported, createSpeechInput, type SpeechInput } from '../voice/speechInput';
 import { ChatBubble } from './ChatBubble';
 import { VoiceButton } from './VoiceButton';
-import { SlotProgress } from './SlotProgress';
+import { SlotProgress, crossedMilestone } from './SlotProgress';
+
+/** Sync partial resume data from conversation slots into the store. */
+function syncSlotsToStore(slots: ConversationState['slots']) {
+  const resume = slotsToResume(slots);
+  const store = useResumeStore.getState();
+  store.setPersonal(resume.personal);
+  store.setSummary(resume.summary);
+  for (const section of resume.sections) {
+    const existing = store.resume.sections.find((s) => s.type === section.type);
+    if (existing) {
+      // Clear existing entries then re-add to avoid duplicates
+      for (const oldEntry of existing.entries) {
+        store.removeEntry(existing.id, oldEntry.id);
+      }
+      for (const entry of section.entries) {
+        store.addEntry(existing.id, entry);
+      }
+    }
+  }
+}
+
+let _systemMsgCounter = 0;
+function systemMsgId(): string {
+  return `sys-${++_systemMsgCounter}-${Date.now()}`;
+}
+
+function TypingIndicator() {
+  return (
+    <div className="mb-3 flex justify-start" role="listitem" aria-hidden="true">
+      <div
+        className="flex items-center gap-1 rounded-2xl px-4 py-3"
+        style={{
+          background: 'var(--saathi-accent-teal-light)',
+          borderRadius: 'var(--saathi-radius) var(--saathi-radius) var(--saathi-radius) 4px',
+        }}
+      >
+        <span
+          className="text-xs font-semibold"
+          style={{ color: 'var(--saathi-accent-teal)' }}
+        >
+          Saathi is typing
+        </span>
+        <span className="saathi-typing-dots" aria-hidden="true">
+          <span className="saathi-dot" />
+          <span className="saathi-dot" />
+          <span className="saathi-dot" />
+        </span>
+        <style>{`
+          .saathi-typing-dots {
+            display: inline-flex;
+            gap: 3px;
+            margin-left: 4px;
+            align-items: center;
+          }
+          .saathi-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--saathi-accent-teal);
+            opacity: 0.4;
+            animation: saathi-bounce 1.2s infinite ease-in-out;
+          }
+          .saathi-dot:nth-child(2) { animation-delay: 0.2s; }
+          .saathi-dot:nth-child(3) { animation-delay: 0.4s; }
+          @keyframes saathi-bounce {
+            0%, 80%, 100% { opacity: 0.4; transform: scale(1); }
+            40% { opacity: 1; transform: scale(1.2); }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
+function CompletionCTA() {
+  return (
+    <div
+      className="mx-auto my-6 max-w-sm animate-fade-in rounded-2xl p-6 text-center"
+      style={{
+        background: 'var(--saathi-accent-teal-light)',
+        border: '2px solid var(--saathi-accent-teal)',
+        borderRadius: 'var(--saathi-radius)',
+      }}
+    >
+      <p
+        className="mb-4 text-lg font-semibold"
+        style={{ color: 'var(--saathi-accent-teal)' }}
+      >
+        Your resume is ready!
+      </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+        <a
+          href="/builder/preview"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-5 py-2 text-sm font-medium text-white no-underline"
+          style={{
+            background: 'var(--saathi-accent-teal)',
+            borderRadius: 'var(--saathi-radius)',
+          }}
+        >
+          Preview Resume
+        </a>
+        <a
+          href="/builder/form"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border px-5 py-2 text-sm font-medium no-underline"
+          style={{
+            borderColor: 'var(--saathi-accent-teal)',
+            color: 'var(--saathi-accent-teal)',
+            borderRadius: 'var(--saathi-radius)',
+          }}
+        >
+          Edit in Form
+        </a>
+        <a
+          href="/builder/dashboard"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border px-5 py-2 text-sm font-medium no-underline"
+          style={{
+            borderColor: 'var(--saathi-accent-teal)',
+            color: 'var(--saathi-accent-teal)',
+            borderRadius: 'var(--saathi-radius)',
+          }}
+        >
+          Career Health Check
+        </a>
+      </div>
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fade-in 0.5s ease-out; }
+      `}</style>
+    </div>
+  );
+}
 
 export function SaathiChat() {
-  const [conversation, setConversation] = useState<ConversationState>(() =>
-    createConversation(),
-  );
+  const [conversation, setConversation] = useState<ConversationState>(() => {
+    const saved = loadFromStorage();
+    if (saved) return saved;
+    return createConversation();
+  });
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showWelcomeBack, setShowWelcomeBack] = useState(() => !!loadFromStorage());
+  const [displayedMessages, setDisplayedMessages] = useState<ChatMessage[]>(
+    () => {
+      const saved = loadFromStorage();
+      if (saved) return saved.messages;
+      return createConversation().messages;
+    },
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const speechRef = useRef<SpeechInput | null>(null);
-  const setPersonal = useResumeStore((s) => s.setPersonal);
-  const setSummary = useResumeStore((s) => s.setSummary);
 
   const speechSupported = isSpeechSupported();
+
+  // Show "Welcome back" system message on restore
+  useEffect(() => {
+    if (showWelcomeBack) {
+      const welcomeMsg: ChatMessage = {
+        id: systemMsgId(),
+        role: 'system',
+        text: 'Welcome back! Picking up where we left off.',
+        timestamp: Date.now(),
+      };
+      setDisplayedMessages((prev) => [...prev, welcomeMsg]);
+      setShowWelcomeBack(false);
+    }
+  }, [showWelcomeBack]);
+
+  const handleStartOver = useCallback(() => {
+    clearStorage();
+    const fresh = createConversation();
+    setConversation(fresh);
+    setDisplayedMessages(fresh.messages);
+    setInputValue('');
+  }, []);
 
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [conversation.messages.length]);
+  }, [displayedMessages.length, isTyping]);
 
-  // Sync conversation state to resume store when complete
+  // When conversation messages change, show typing indicator then reveal new messages
   useEffect(() => {
-    if (conversation.isComplete) {
-      const resume = slotsToResume(conversation.slots);
-      setPersonal(resume.personal);
-      setSummary(resume.summary);
-      // Sections are handled by the resume store reset + rebuild
-      const store = useResumeStore.getState();
-      // Update sections via store methods
-      for (const section of resume.sections) {
-        const existing = store.resume.sections.find((s) => s.type === section.type);
-        if (existing) {
-          for (const entry of section.entries) {
-            store.addEntry(existing.id, entry);
-          }
-        }
+    const convMsgs = conversation.messages;
+    // Find new messages not yet displayed (comparing by length since messages are append-only)
+    if (convMsgs.length <= displayedMessages.length) return;
+
+    const newMessages = convMsgs.slice(displayedMessages.length);
+    const hasSaathiReply = newMessages.some((m) => m.role === 'saathi');
+
+    if (hasSaathiReply) {
+      // Show user message(s) immediately, delay saathi reply
+      const userMsgs = newMessages.filter((m) => m.role !== 'saathi');
+      if (userMsgs.length > 0) {
+        setDisplayedMessages((prev) => [...prev, ...userMsgs]);
       }
+      setIsTyping(true);
+      const delay = 400 + Math.random() * 400; // 400-800ms
+      const timer = setTimeout(() => {
+        setIsTyping(false);
+        setDisplayedMessages(convMsgs);
+      }, delay);
+      return () => clearTimeout(timer);
+    } else {
+      setDisplayedMessages(convMsgs);
     }
-  }, [conversation.isComplete, conversation.slots, setPersonal, setSummary]);
+  }, [conversation.messages, displayedMessages.length]);
+
+  const applyInput = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      setConversation((prev) => {
+        const next = processUserInput(prev, trimmed);
+        syncSlotsToStore(next.slots);
+
+        // Inject encouragement when crossing a milestone threshold
+        const milestone = crossedMilestone(prev.filledPercentage, next.filledPercentage);
+        if (milestone) {
+          const name = (next.slots.values.get('personal.name') as string) || '';
+          const encouragementText = milestone === 100
+            ? '\uD83C\uDF89 You did it! Your resume is complete!'
+            : getResponse('encouragement', { name });
+
+          const encouragementMsg: ChatMessage = {
+            id: systemMsgId(),
+            role: 'saathi',
+            text: encouragementText,
+            timestamp: Date.now(),
+          };
+
+          return {
+            ...next,
+            messages: [...next.messages, encouragementMsg],
+          };
+        }
+
+        return next;
+      });
+      setInputValue('');
+      inputRef.current?.focus();
+    },
+    [],
+  );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      const trimmed = inputValue.trim();
-      if (!trimmed) return;
-
-      setConversation((prev) => processUserInput(prev, trimmed));
-      setInputValue('');
-      inputRef.current?.focus();
+      applyInput(inputValue);
     },
-    [inputValue],
+    [inputValue, applyInput],
   );
+
+  const addSystemMessage = useCallback((text: string) => {
+    const msg: ChatMessage = {
+      id: systemMsgId(),
+      role: 'system',
+      text,
+      timestamp: Date.now(),
+    };
+    setDisplayedMessages((prev) => [...prev, msg]);
+  }, []);
 
   const handleVoiceToggle = useCallback(() => {
     if (isListening) {
@@ -79,8 +298,7 @@ export function SaathiChat() {
       speechRef.current.onResult = (transcript, isFinal) => {
         setInputValue(transcript);
         if (isFinal) {
-          setConversation((prev) => processUserInput(prev, transcript));
-          setInputValue('');
+          applyInput(transcript);
           setIsListening(false);
         }
       };
@@ -91,12 +309,15 @@ export function SaathiChat() {
 
       speechRef.current.onError = () => {
         setIsListening(false);
+        addSystemMessage(
+          "I couldn't hear that. Make sure your mic is enabled, or just type instead.",
+        );
       };
     }
 
     speechRef.current.start();
     setIsListening(true);
-  }, [isListening]);
+  }, [isListening, applyInput, addSystemMessage]);
 
   return (
     <div
@@ -106,12 +327,27 @@ export function SaathiChat() {
         minHeight: 'calc(100vh - 120px)',
       }}
     >
-      {/* Progress bar */}
-      <div className="p-4 pb-0">
-        <SlotProgress
-          filledPercentage={conversation.filledPercentage}
-          phase={conversation.slots.phase}
-        />
+      {/* Progress bar + Start Over */}
+      <div className="flex items-center gap-2 p-4 pb-0">
+        <div className="flex-1">
+          <SlotProgress
+            filledPercentage={conversation.filledPercentage}
+            phase={conversation.slots.phase}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleStartOver}
+          className="min-h-[32px] rounded-lg border px-3 py-1 text-xs font-medium"
+          style={{
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+            background: 'transparent',
+          }}
+          aria-label="Start over and clear conversation"
+        >
+          Start Over
+        </button>
       </div>
 
       {/* Messages */}
@@ -119,10 +355,14 @@ export function SaathiChat() {
         className="flex-1 overflow-y-auto p-4"
         role="list"
         aria-label="Conversation with Saathi"
+        aria-live="polite"
+        aria-relevant="additions"
       >
-        {conversation.messages.map((msg) => (
+        {displayedMessages.map((msg) => (
           <ChatBubble key={msg.id} message={msg} />
         ))}
+        {isTyping && <TypingIndicator />}
+        {conversation.isComplete && !isTyping && <CompletionCTA />}
         <div ref={messagesEndRef} />
       </div>
 

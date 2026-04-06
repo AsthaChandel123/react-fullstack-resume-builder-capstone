@@ -8,6 +8,20 @@ interface ChatBubbleProps {
 
 export function ChatBubble({ message }: ChatBubbleProps) {
   const isSaathi = message.role === 'saathi';
+  const isSystem = message.role === 'system';
+
+  if (isSystem) {
+    return (
+      <div className="mb-3 flex justify-center" role="listitem">
+        <p
+          className="m-0 px-4 py-2 text-center text-xs italic"
+          style={{ color: 'var(--text-muted, #888)', lineHeight: '1.5' }}
+        >
+          {message.text}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div

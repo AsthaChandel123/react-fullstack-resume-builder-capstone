@@ -51,7 +51,49 @@ export interface SlotState {
   phase: ConversationPhase;
   /** Index within array slots (e.g., which experience entry) */
   arrayIndices: Map<string, number>;
+  /** Slots explicitly skipped by the user (negation / "no projects" etc.) */
+  skippedSlots: Set<SlotId>;
 }
+
+/** Prefixes for sections that store multiple entries as JSON arrays */
+export const ARRAY_SECTION_PREFIXES = ['experience', 'projects', 'education'] as const;
+export type ArraySectionPrefix = (typeof ARRAY_SECTION_PREFIXES)[number];
+
+/**
+ * Add a new entry to an array section (experience, projects, education).
+ * Each entry is a JSON-serialized object stored in a string[] under
+ * a synthetic slot key like `experience[]._entries`.
+ */
+export function addArrayEntry(
+  state: SlotState,
+  prefix: ArraySectionPrefix,
+  fields: Record<string, string>,
+): void {
+  const key = `${prefix}[]._entries` as SlotId;
+  const existing = state.values.get(key);
+  const arr: string[] = Array.isArray(existing) ? [...existing] : [];
+  arr.push(JSON.stringify(fields));
+  state.values.set(key, arr);
+}
+
+/**
+ * Get parsed array entries for a section.
+ */
+export function getArrayEntries(
+  state: SlotState,
+  prefix: ArraySectionPrefix,
+): Record<string, string>[] {
+  const key = `${prefix}[]._entries` as SlotId;
+  const raw = state.values.get(key);
+  if (!Array.isArray(raw)) return [];
+  return raw.map((s) => {
+    try { return JSON.parse(s); }
+    catch { return {}; }
+  });
+}
+
+/** Negation pattern: user wants to skip a section */
+export const NEGATION_RE = /^(no|none|i don'?t have|nothing|skip|na|nahi|nhi|not applicable)\b/i;
 
 export const REQUIRED_SLOTS: SlotDefinition[] = [
   { id: 'personal.name', phase: 'warmup', required: true, isArray: false, label: 'Name' },
@@ -99,6 +141,7 @@ export function createSlotState(): SlotState {
     values: new Map(),
     phase: 'warmup',
     arrayIndices: new Map(),
+    skippedSlots: new Set(),
   };
 }
 
@@ -129,11 +172,15 @@ export function getRequiredFilledPercentage(state: SlotState): number {
   return Math.round((filled / total) * 100);
 }
 
+export function isSlotSkipped(state: SlotState, slotId: SlotId): boolean {
+  return state.skippedSlots.has(slotId);
+}
+
 export function getNextUnfilledSlot(state: SlotState): SlotDefinition | null {
   // Required slots first, in phase order
   for (const phase of PHASE_ORDER) {
     for (const slot of REQUIRED_SLOTS) {
-      if (slot.phase === phase && !isSlotFilled(state, slot.id)) {
+      if (slot.phase === phase && !isSlotFilled(state, slot.id) && !isSlotSkipped(state, slot.id)) {
         return slot;
       }
     }
@@ -141,12 +188,23 @@ export function getNextUnfilledSlot(state: SlotState): SlotDefinition | null {
   // Then preferred, in phase order
   for (const phase of PHASE_ORDER) {
     for (const slot of PREFERRED_SLOTS) {
-      if (slot.phase === phase && !isSlotFilled(state, slot.id)) {
+      if (slot.phase === phase && !isSlotFilled(state, slot.id) && !isSlotSkipped(state, slot.id)) {
         return slot;
       }
     }
   }
   return null;
+}
+
+/**
+ * Skip all slots belonging to a given phase.
+ */
+export function skipPhaseSlots(state: SlotState, phase: ConversationPhase): void {
+  for (const slot of ALL_SLOTS) {
+    if (slot.phase === phase && !isSlotFilled(state, slot.id)) {
+      state.skippedSlots.add(slot.id);
+    }
+  }
 }
 
 export function getPhaseForSlot(slotId: SlotId): ConversationPhase {

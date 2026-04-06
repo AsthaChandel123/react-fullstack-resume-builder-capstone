@@ -5,8 +5,8 @@ interface ScoreBadgeProps {
 
 export function ScoreBadge({ score, label }: ScoreBadgeProps) {
   const color =
-    score > 75 ? '#2ecc40' : score > 50 ? '#ffdc00' : '#ff4136';
-  const textColor = score > 50 && score <= 75 ? '#333' : '#fff';
+    score > 75 ? '#16a34a' : score > 50 ? '#ca8a04' : '#dc2626';
+  const textColor = '#fff';
 
   return (
     <span

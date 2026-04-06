@@ -54,16 +54,22 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
-    // Devices: device fingerprint -> UID + email mapping
+    // Devices: only the owner can read/write their own device doc
     match /devices/{deviceId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null;
+      allow read: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid;
     }
 
-    // Email-device binding: tracks which devices an email has been used from
+    // Email-device binding: only the owner can read/write their own binding
     match /emailDevices/{emailHash} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null;
+      allow read: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid;
     }
 
     // Mail collection for SendGrid trigger

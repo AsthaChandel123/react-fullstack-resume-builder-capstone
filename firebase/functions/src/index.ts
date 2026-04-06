@@ -80,7 +80,7 @@ export const startTestSession = onCall(async (request) => {
 
   // Validate criteria exists and is active
   const criteriaDoc = await db.collection('criteria').doc(criteriaCode).get();
-  if (!criteriaDoc.exists || !criteriaDoc.data()?.active) {
+  if (!criteriaDoc.exists || criteriaDoc.data()?.status !== 'active') {
     throw new HttpsError('not-found', 'Criteria not found or inactive.');
   }
 

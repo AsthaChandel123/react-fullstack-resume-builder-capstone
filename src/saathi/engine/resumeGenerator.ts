@@ -1,7 +1,7 @@
 // /mnt/experiments/astha-resume/src/saathi/engine/resumeGenerator.ts
 
 import type { Resume, Section, Entry } from '@/store/types';
-import type { SlotState } from './slots';
+import { getArrayEntries, type SlotState } from './slots';
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -26,9 +26,25 @@ export function slotsToResume(slots: SlotState): Resume {
 
   const sections: Section[] = [];
 
-  // Education
+  // Education (Bug 3: support multiple entries)
+  const eduArrayEntries = getArrayEntries(slots, 'education');
   const eduEntries: Entry[] = [];
-  if (get('education[].degree') || get('education[].institution')) {
+  if (eduArrayEntries.length > 0) {
+    for (const entry of eduArrayEntries) {
+      eduEntries.push({
+        id: uuid(),
+        fields: {
+          degree: entry.degree || '',
+          institution: entry.institution || '',
+          year: entry.year || '',
+          field: entry.field || '',
+          gpa: entry.gpa || '',
+        },
+        bullets: [],
+      });
+    }
+  } else if (get('education[].degree') || get('education[].institution')) {
+    // Fallback: single flat entry
     eduEntries.push({
       id: uuid(),
       fields: {
@@ -49,9 +65,23 @@ export function slotsToResume(slots: SlotState): Resume {
     entries: eduEntries,
   });
 
-  // Experience
+  // Experience (Bug 3: support multiple entries)
+  const expArrayEntries = getArrayEntries(slots, 'experience');
   const expEntries: Entry[] = [];
-  if (get('experience[].company') || get('experience[].role')) {
+  if (expArrayEntries.length > 0) {
+    for (const entry of expArrayEntries) {
+      expEntries.push({
+        id: uuid(),
+        fields: {
+          company: entry.company || '',
+          role: entry.role || '',
+          dates: entry.dates || '',
+        },
+        bullets: entry.bullets ? JSON.parse(entry.bullets) : [],
+      });
+    }
+  } else if (get('experience[].company') || get('experience[].role')) {
+    // Fallback: single flat entry
     expEntries.push({
       id: uuid(),
       fields: {
@@ -70,9 +100,23 @@ export function slotsToResume(slots: SlotState): Resume {
     entries: expEntries,
   });
 
-  // Projects
+  // Projects (Bug 3: support multiple entries)
+  const projArrayEntries = getArrayEntries(slots, 'projects');
   const projEntries: Entry[] = [];
-  if (get('projects[].name')) {
+  if (projArrayEntries.length > 0) {
+    for (const entry of projArrayEntries) {
+      projEntries.push({
+        id: uuid(),
+        fields: {
+          name: entry.name || '',
+          tech: entry.tech || '',
+          outcome: entry.outcome || '',
+        },
+        bullets: [],
+      });
+    }
+  } else if (get('projects[].name')) {
+    // Fallback: single flat entry
     projEntries.push({
       id: uuid(),
       fields: {

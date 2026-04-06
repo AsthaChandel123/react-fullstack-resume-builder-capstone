@@ -7,12 +7,12 @@ export function Footer() {
     >
       <div>
         <div className="text-sm font-bold text-white">ResumeAI</div>
-        <div className="text-xs text-white/50">BTech CSE Capstone Project</div>
+        <div className="text-xs text-white/80">BTech CSE Capstone Project</div>
       </div>
       <div className="text-center">
-        <div className="text-xs text-white/70">Developed by</div>
+        <div className="text-xs text-white/85">Developed by</div>
         <div className="text-sm font-bold text-white">Astha Chandel</div>
-        <div className="text-xs text-white/40">GF202214559</div>
+        <div className="text-xs text-white/75">GF202214559</div>
       </div>
       <div className="flex items-center gap-2 text-right">
         <img
@@ -26,7 +26,7 @@ export function Footer() {
           <div className="text-xs font-bold text-white">
             Shoolini University
           </div>
-          <div className="text-xs text-white/40">Solan, Himachal Pradesh</div>
+          <div className="text-xs text-white/75">Solan, Himachal Pradesh</div>
         </div>
       </div>
     </footer>

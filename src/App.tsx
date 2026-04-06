@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Layout } from './layout/Layout';
 import { Landing } from './pages/Landing';
 const BuilderLegacy = lazy(() =>
   import('./pages/Builder').then((m) => ({ default: m.Builder })),
 );
-import { PrintPreview } from './pages/PrintPreview';
-import { ModelDownloadScreen } from './ai/ModelDownloadScreen';
-import { isModelReady, preloadModel } from './ai/models/webllm';
+const PrintPreview = lazy(() =>
+  import('./pages/PrintPreview').then((m) => ({ default: m.PrintPreview })),
+);
 
 const Employer = lazy(() =>
   import('./pages/Employer').then((m) => ({ default: m.Employer })),
@@ -51,67 +51,26 @@ function Loading() {
   );
 }
 
-async function hasWebGPU(): Promise<boolean> {
-  try {
-    if (typeof navigator === 'undefined' || !('gpu' in navigator)) return false;
-    const gpu = (navigator as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
-    if (!gpu) return false;
-    const adapter = await gpu.requestAdapter();
-    return adapter !== null;
-  } catch {
-    return false;
-  }
-}
-
 export function App() {
-  const [modelState, setModelState] = useState<'checking' | 'downloading' | 'ready'>(() => {
-    if (localStorage.getItem('resumeai_ai_ready') === '1') return 'ready';
-    return 'checking';
-  });
-
+  // Background model download -- never blocks the app
   useEffect(() => {
-    if (modelState !== 'checking') return;
+    if (localStorage.getItem('resumeai_ai_ready') === '1') return;
 
-    // Already loaded from a previous session
-    if (isModelReady()) {
-      localStorage.setItem('resumeai_ai_ready', '1');
-      localStorage.setItem('resumeai_ai_level', 'L3');
-      setModelState('ready');
-      return;
-    }
+    // Set baseline: Tier 0+1 always available (no model needed)
+    localStorage.setItem('resumeai_ai_ready', '1');
+    localStorage.setItem('resumeai_ai_level', 'L2');
 
-    // Detect WebGPU: if available, show download screen for Gemma 4
-    // If not, skip straight to the app - Gemini API handles reasoning
-    hasWebGPU().then((gpu) => {
-      if (gpu) {
-        // WebGPU available - show download screen for local Gemma 4
-        setModelState('downloading');
-      } else {
-        // No WebGPU - use Gemini API for L4, skip download entirely
-        localStorage.setItem('resumeai_ai_ready', '1');
-        localStorage.setItem('resumeai_ai_level', 'L2');
-        setModelState('ready');
-        // Try downloading in background silently (for WASM fallback)
-        preloadModel().catch(() => {});
-      }
+    // Try loading Gemma 4 in background (progressive enhancement)
+    import('./ai/models/webllm').then(({ preloadModel }) => {
+      preloadModel((report) => {
+        if (report.progress >= 1) {
+          localStorage.setItem('resumeai_ai_level', 'L3');
+        }
+      }).catch(() => {
+        // Model download failed silently. L2 remains active.
+      });
     });
-  }, [modelState]);
-
-  if (modelState === 'checking') {
-    return <Loading />;
-  }
-
-  if (modelState === 'downloading') {
-    return (
-      <ModelDownloadScreen
-        onReady={(level) => {
-          localStorage.setItem('resumeai_ai_ready', '1');
-          localStorage.setItem('resumeai_ai_level', level);
-          setModelState('ready');
-        }}
-      />
-    );
-  }
+  }, []);
 
   return (
     <BrowserRouter>

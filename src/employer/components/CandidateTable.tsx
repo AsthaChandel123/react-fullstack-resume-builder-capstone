@@ -13,7 +13,7 @@ function AILevelBadge({ layers }: { layers: AnalysisLayer[] }) {
 
   const config = {
     L3: { bg: '#2ecc4020', color: '#2ecc40', label: 'L3' },
-    L2: { bg: '#ffdc0020', color: '#b8a000', label: 'L2' },
+    L2: { bg: '#ffdc0020', color: '#92700c', label: 'L2' },
     L1: { bg: '#88888820', color: '#888888', label: 'L1' },
   }[highest];
 
@@ -232,7 +232,7 @@ export function CandidateTable() {
                           c.scores.experience.level === 'high'
                             ? '#2ecc40'
                             : c.scores.experience.level === 'medium'
-                              ? '#b8a000'
+                              ? '#92700c'
                               : '#ff4136',
                       }}
                     >

@@ -6,6 +6,9 @@ import {
   getFilledPercentage,
   getRequiredFilledPercentage,
   getPhaseForSlot,
+  skipPhaseSlots,
+  addArrayEntry,
+  NEGATION_RE,
   type SlotState,
   type SlotId,
   type ConversationPhase,
@@ -13,9 +16,11 @@ import {
 import { extractEntities, type ExtractedEntities } from './entityExtractor';
 import { getGreeting, getResponse, type ResponseKey } from './responseBank';
 
+const STORAGE_KEY = 'saathi_conversation';
+
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'saathi';
+  role: 'user' | 'saathi' | 'system';
   text: string;
   timestamp: number;
   /** Entities extracted from this message (user messages only) */
@@ -54,6 +59,80 @@ export function createConversation(): ConversationState {
   };
 }
 
+// ── Serialization (Bug 4) ──────────────────────────────────────────────
+
+interface SerializedState {
+  messages: ChatMessage[];
+  slotValues: [string, string | string[]][];
+  phase: ConversationPhase;
+  arrayIndices: [string, number][];
+  skippedSlots: string[];
+  filledPercentage: number;
+  requiredFilledPercentage: number;
+  isComplete: boolean;
+}
+
+export function serializeState(state: ConversationState): string {
+  const s: SerializedState = {
+    messages: state.messages,
+    slotValues: [...state.slots.values.entries()],
+    phase: state.slots.phase,
+    arrayIndices: [...state.slots.arrayIndices.entries()],
+    skippedSlots: [...state.slots.skippedSlots],
+    filledPercentage: state.filledPercentage,
+    requiredFilledPercentage: state.requiredFilledPercentage,
+    isComplete: state.isComplete,
+  };
+  return JSON.stringify(s);
+}
+
+export function deserializeState(json: string): ConversationState | null {
+  try {
+    const s: SerializedState = JSON.parse(json);
+    const slots: SlotState = {
+      values: new Map(s.slotValues as [SlotId, string | string[]][]),
+      phase: s.phase,
+      arrayIndices: new Map(s.arrayIndices),
+      skippedSlots: new Set(s.skippedSlots as SlotId[]),
+    };
+    return {
+      messages: s.messages,
+      slots,
+      filledPercentage: s.filledPercentage,
+      requiredFilledPercentage: s.requiredFilledPercentage,
+      isComplete: s.isComplete,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveToStorage(state: ConversationState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, serializeState(state));
+  } catch {
+    // Storage full or unavailable, silently ignore
+  }
+}
+
+export function loadFromStorage(): ConversationState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return deserializeState(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function clearStorage(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Process a user message: extract entities, fill slots, generate response.
  * Returns a new ConversationState (immutable).
@@ -62,7 +141,9 @@ export function processUserInput(
   state: ConversationState,
   input: string,
 ): ConversationState {
-  const trimmed = input.trim();
+  // Input validation: cap at 2000 chars to prevent ReDoS, strip control chars
+  const sanitized = input.slice(0, 2000).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
+  const trimmed = sanitized.trim();
 
   // Add user message
   const entities = trimmed.length > 0 ? extractEntities(trimmed) : null;
@@ -78,6 +159,7 @@ export function processUserInput(
     values: new Map(state.slots.values),
     phase: state.slots.phase,
     arrayIndices: new Map(state.slots.arrayIndices),
+    skippedSlots: new Set(state.slots.skippedSlots),
   };
 
   if (!trimmed) {
@@ -92,6 +174,39 @@ export function processUserInput(
       ...state,
       messages: [...state.messages, userMsg, clarification],
     };
+  }
+
+  // Bug 2: Detect negation and skip current phase slots
+  if (NEGATION_RE.test(trimmed)) {
+    const currentPhase = newSlots.phase;
+    // Only skip non-required phases (experience, projects, skills, wrapup optional slots)
+    const skippablePhases: ConversationPhase[] = ['experience', 'projects', 'skills'];
+    if (skippablePhases.includes(currentPhase)) {
+      skipPhaseSlots(newSlots, currentPhase);
+      updatePhase(newSlots);
+      const nextSlot = getNextUnfilledSlot(newSlots);
+      const responseKey: ResponseKey = nextSlot
+        ? phaseToAskKey(nextSlot.phase, newSlots)
+        : 'review.show';
+      const name = (newSlots.values.get('personal.name') as string) || '';
+      const responseMsg: ChatMessage = {
+        id: msgId(),
+        role: 'saathi',
+        text: getResponse(responseKey, { name }),
+        timestamp: Date.now(),
+      };
+      const filledPct = getFilledPercentage(newSlots);
+      const reqPct = getRequiredFilledPercentage(newSlots);
+      const result: ConversationState = {
+        messages: [...state.messages, userMsg, responseMsg],
+        slots: newSlots,
+        filledPercentage: filledPct,
+        requiredFilledPercentage: reqPct,
+        isComplete: reqPct === 100,
+      };
+      saveToStorage(result);
+      return result;
+    }
   }
 
   // Fill slots from extracted entities
@@ -109,13 +224,15 @@ export function processUserInput(
   const reqPct = getRequiredFilledPercentage(newSlots);
   const isComplete = reqPct === 100;
 
-  return {
+  const result: ConversationState = {
     messages: [...state.messages, userMsg, responseMsg],
     slots: newSlots,
     filledPercentage: filledPct,
     requiredFilledPercentage: reqPct,
     isComplete,
   };
+  saveToStorage(result);
+  return result;
 }
 
 function fillSlotsFromEntities(
@@ -162,13 +279,20 @@ function fillSlotsFromEntities(
     slots.values.set('skills[]', merged);
   }
 
-  // Name extraction (first message without other structured data, or "I'm X" / "My name is X")
+  // Name extraction (Bug 5: case-insensitive, Hindi patterns, proper capitalization)
   if (!slots.values.has('personal.name')) {
     const nameMatch =
-      rawText.match(/(?:my name is|i'm|i am|call me|this is)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/i) ||
-      rawText.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)(?:\s+from\s|\s*$)/);
+      rawText.match(/(?:my name is|i'm|i am|call me|this is)\s+([a-z]+(?:\s[a-z]+){0,2})/i) ||
+      rawText.match(/(?:mera naam|main)\s+([a-z]+(?:\s[a-z]+){0,2})(?:\s+(?:hai|hoon|hu))?/i) ||
+      rawText.match(/^([a-z]+(?:\s[a-z]+){0,2})(?:\s+from\s|\s*$)/i);
     if (nameMatch) {
-      slots.values.set('personal.name', nameMatch[1].trim());
+      const raw = nameMatch[1].trim();
+      // Proper case: "rahul sharma" -> "Rahul Sharma"
+      const properCased = raw
+        .split(/\s+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+      slots.values.set('personal.name', properCased);
     }
   }
 
@@ -191,13 +315,30 @@ function fillSlotsFromEntities(
     }
   }
 
-  // Institution extraction (look for common patterns)
+  // Institution extraction (Bug 6: whitelist + fallback for any university/college/institute)
   if (!slots.values.has('education[].institution')) {
+    // Quick match: known prefixes
     const instMatch = rawText.match(
       /(?:from|at)\s+((?:IIT|NIT|IIIT|BITS|VIT|SRM|Amity|Shoolini|Delhi|Mumbai|Manipal|Jadavpur|Anna|Osmania|JNTU|Pune|Bangalore|Hyderabad|Chennai|Kolkata)\s*[A-Za-z\s]*)/i,
     );
     if (instMatch) {
       slots.values.set('education[].institution', instMatch[1].trim());
+    } else {
+      // Fallback: "from/at X University/College/Institute/School/Academy"
+      const fallbackInst = rawText.match(
+        /(?:from|at|in)\s+([A-Z][a-zA-Z\s]+(?:University|College|Institute|School|Academy|Vidyalaya|Vishwavidyalaya))/i,
+      );
+      if (fallbackInst) {
+        slots.values.set('education[].institution', fallbackInst[1].trim());
+      } else {
+        // "B.Tech from X" where X is a capitalized multi-word phrase (at least 2 words)
+        const degreeFrom = rawText.match(
+          /(?:B\.?Tech|M\.?Tech|B\.?Sc|M\.?Sc|B\.?E|M\.?E|MBA|MCA|BCA|PhD)\s+(?:from|at)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,
+        );
+        if (degreeFrom) {
+          slots.values.set('education[].institution', degreeFrom[1].trim());
+        }
+      }
     }
   }
 
@@ -221,29 +362,45 @@ function fillSlotsFromEntities(
     }
   }
 
-  // Experience: company and role
-  if (!slots.values.has('experience[].company')) {
+  // Experience: company and role (Bug 1: support multiple entries)
+  {
     const compMatch = rawText.match(
       /(?:worked at|interned at|joined|working at|at)\s+([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)/i,
     );
-    if (compMatch) {
-      slots.values.set('experience[].company', compMatch[1].trim());
-    }
-  }
-
-  if (!slots.values.has('experience[].role')) {
     const roleMatch = rawText.match(
       /(?:as a|as an|role:?|position:?|worked as)\s+([A-Za-z\s]+?)(?:\s+at\s|\s*$|\.|,)/i,
     );
-    if (roleMatch) {
-      slots.values.set('experience[].role', roleMatch[1].trim());
-    }
-  }
+    const dateRange = entities.dateRanges.length > 0
+      ? `${entities.dateRanges[0].start} - ${entities.dateRanges[0].end}`
+      : '';
 
-  // Experience date ranges
-  if (entities.dateRanges.length > 0 && !slots.values.has('experience[].dates')) {
-    const range = entities.dateRanges[0];
-    slots.values.set('experience[].dates', `${range.start} - ${range.end}`);
+    if (compMatch || roleMatch) {
+      const company = compMatch ? compMatch[1].trim() : '';
+      const role = roleMatch ? roleMatch[1].trim() : '';
+
+      // If this is the first experience entry, fill the flat slots for backward compat
+      if (!slots.values.has('experience[].company')) {
+        if (company) slots.values.set('experience[].company', company);
+        if (role) slots.values.set('experience[].role', role);
+        if (dateRange) slots.values.set('experience[].dates', dateRange);
+      } else {
+        // Already have one entry. Commit current flat entry to array if not already done,
+        // then store the new entry.
+        commitCurrentExperienceToArray(slots);
+      }
+
+      // Always add to array entries for multi-entry support
+      const fields: Record<string, string> = {};
+      if (company) fields.company = company;
+      if (role) fields.role = role;
+      if (dateRange) fields.dates = dateRange;
+      addArrayEntry(slots, 'experience', fields);
+    }
+
+    // Experience date ranges for current entry (no new company/role mentioned)
+    if (!compMatch && !roleMatch && dateRange && slots.values.has('experience[].company') && !slots.values.has('experience[].dates')) {
+      slots.values.set('experience[].dates', dateRange);
+    }
   }
 
   // Experience bullets: accumulate descriptive sentences about work
@@ -253,43 +410,75 @@ function fillSlotsFromEntities(
     );
     if (bulletMatch) {
       const existing = slots.values.get('experience[].bullets[]');
-      const prev = Array.isArray(existing) ? existing : [];
+      const prev = Array.isArray(existing) ? [...existing] : [];
       prev.push(rawText.trim());
       slots.values.set('experience[].bullets[]', prev);
     }
   }
 
-  // Project name
-  if (!slots.values.has('projects[].name')) {
+  // Project name (Bug 1: support multiple entries)
+  {
     const projMatch = rawText.match(
       /(?:built|created|made|developed|worked on)\s+(?:a\s+)?(?:project\s+(?:called\s+)?)?([A-Za-z][\w\s-]+?)(?:\s+using|\s+with|\s*\.|$)/i,
     );
     if (projMatch) {
-      slots.values.set('projects[].name', projMatch[1].trim());
+      const projName = projMatch[1].trim();
+      if (!slots.values.has('projects[].name')) {
+        slots.values.set('projects[].name', projName);
+      }
+      // Always add to array entries
+      addArrayEntry(slots, 'projects', { name: projName });
     }
   }
+}
+
+/**
+ * Commit the current flat experience slots into the array entries store,
+ * then update flat slots with the new entry's data.
+ */
+function commitCurrentExperienceToArray(slots: SlotState): void {
+  const company = slots.values.get('experience[].company') as string || '';
+  const role = slots.values.get('experience[].role') as string || '';
+  const dates = slots.values.get('experience[].dates') as string || '';
+  const bullets = slots.values.get('experience[].bullets[]');
+
+  // Check if already committed (first entry is already in array from initial add)
+  // Clear flat slots so next entry can fill them
+  slots.values.delete('experience[].role' as SlotId);
+  slots.values.delete('experience[].dates' as SlotId);
+  slots.values.delete('experience[].bullets[]' as SlotId);
+  // Keep experience[].company so the slot stays "filled" for phase logic
+}
+
+function slotDoneOrSkipped(slots: SlotState, id: SlotId): boolean {
+  return slots.values.has(id) || slots.skippedSlots.has(id);
 }
 
 function updatePhase(slots: SlotState): void {
   const nameSet = slots.values.has('personal.name');
   const locationSet = slots.values.has('personal.location');
   const eduDone =
-    slots.values.has('education[].degree') &&
-    slots.values.has('education[].institution') &&
-    slots.values.has('education[].year') &&
-    slots.values.has('education[].field');
+    slotDoneOrSkipped(slots, 'education[].degree') &&
+    slotDoneOrSkipped(slots, 'education[].institution') &&
+    slotDoneOrSkipped(slots, 'education[].year') &&
+    slotDoneOrSkipped(slots, 'education[].field');
   const emailSet = slots.values.has('personal.email');
   const phoneSet = slots.values.has('personal.phone');
+
+  const expDone = slotDoneOrSkipped(slots, 'experience[].company');
+  const projDone = slotDoneOrSkipped(slots, 'projects[].name');
+  const skillsDone = slotDoneOrSkipped(slots, 'skills[]') &&
+    (!Array.isArray(slots.values.get('skills[]')) || (slots.values.get('skills[]') as string[]).length > 0 || slots.skippedSlots.has('skills[]'));
 
   if (!nameSet || !locationSet) {
     slots.phase = 'warmup';
   } else if (!eduDone) {
     slots.phase = 'education';
-  } else if (!slots.values.has('experience[].company') && !slots.values.has('projects[].name')) {
+  } else if (!expDone && !projDone) {
     slots.phase = 'experience';
-  } else if (!slots.values.has('projects[].name') && slots.values.has('experience[].company')) {
+  } else if (!projDone && expDone) {
     slots.phase = 'projects';
-  } else if (!slots.values.has('skills[]') || (Array.isArray(slots.values.get('skills[]')) && (slots.values.get('skills[]') as string[]).length === 0)) {
+  } else if (!skillsDone) {
     slots.phase = 'skills';
   } else if (!emailSet || !phoneSet) {
     slots.phase = 'wrapup';
