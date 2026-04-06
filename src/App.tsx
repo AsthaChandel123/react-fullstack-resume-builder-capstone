@@ -5,7 +5,7 @@ import { Landing } from './pages/Landing';
 import { Builder } from './pages/Builder';
 import { PrintPreview } from './pages/PrintPreview';
 import { ModelDownloadScreen } from './ai/ModelDownloadScreen';
-import { isModelReady } from './ai/models/webllm';
+import { isModelReady, preloadModel } from './ai/models/webllm';
 
 const Employer = lazy(() =>
   import('./pages/Employer').then((m) => ({ default: m.Employer })),
@@ -43,6 +43,18 @@ function Loading() {
   );
 }
 
+async function hasWebGPU(): Promise<boolean> {
+  try {
+    if (typeof navigator === 'undefined' || !('gpu' in navigator)) return false;
+    const gpu = (navigator as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
+    if (!gpu) return false;
+    const adapter = await gpu.requestAdapter();
+    return adapter !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function App() {
   const [modelState, setModelState] = useState<'checking' | 'downloading' | 'ready'>(() => {
     if (localStorage.getItem('resumeai_ai_ready') === '1') return 'ready';
@@ -51,12 +63,30 @@ export function App() {
 
   useEffect(() => {
     if (modelState !== 'checking') return;
+
+    // Already loaded from a previous session
     if (isModelReady()) {
       localStorage.setItem('resumeai_ai_ready', '1');
+      localStorage.setItem('resumeai_ai_level', 'L3');
       setModelState('ready');
-    } else {
-      setModelState('downloading');
+      return;
     }
+
+    // Detect WebGPU: if available, show download screen for Gemma 4
+    // If not, skip straight to the app - Gemini API handles reasoning
+    hasWebGPU().then((gpu) => {
+      if (gpu) {
+        // WebGPU available - show download screen for local Gemma 4
+        setModelState('downloading');
+      } else {
+        // No WebGPU - use Gemini API for L4, skip download entirely
+        localStorage.setItem('resumeai_ai_ready', '1');
+        localStorage.setItem('resumeai_ai_level', 'L2');
+        setModelState('ready');
+        // Try downloading in background silently (for WASM fallback)
+        preloadModel().catch(() => {});
+      }
+    });
   }, [modelState]);
 
   if (modelState === 'checking') {
