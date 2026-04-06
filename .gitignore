@@ -9,3 +9,14 @@ dev-dist/
 .superpowers/
 .env
 .env.local
+.env.production
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Screenshots from testing
+screenshots/
+
+# Firebase
+firebase/functions/lib/
+firebase/functions/node_modules/
