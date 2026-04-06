@@ -1,6 +1,6 @@
 const parameters = [
   { param: 'Skills Match', weight: '25%', source: 'NACE Job Outlook 2024' },
-  { param: 'Semantic Skills', weight: '10%', source: 'MiniLM-L6-v2 embeddings' },
+  { param: 'Semantic Skills', weight: '10%', source: 'E5-small-v2 embeddings' },
   { param: 'Experience Level', weight: '15%', source: 'SHRM Talent Acquisition' },
   { param: 'Education Relevance', weight: '8%', source: 'AAC&U VALUE Rubrics' },
   { param: 'Projects (Quantified)', weight: '8%', source: 'NACE Career Readiness' },

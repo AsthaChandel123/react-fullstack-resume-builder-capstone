@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 
 const PILLS = [
-  '100% Offline',
-  'In-Browser AI',
-  'WCAG 2.2 AAA',
-  'Research-Backed Scoring',
-  'Zero Server Cost',
+  'Conversational Resume Building',
+  'Voice Input in 11 Languages',
+  'Wellbeing Score for Every Job',
+  'Research-Backed Insights',
+  'Zero Data Leaves Your Device',
 ] as const;
 
 export function Landing() {
@@ -15,17 +15,14 @@ export function Landing() {
         className="px-8 py-20 text-center"
         style={{
           background:
-            'linear-gradient(170deg, var(--accent-navy) 0%, var(--accent-navy) 60%, var(--accent-red) 100%)',
+            'linear-gradient(170deg, var(--accent-navy) 0%, var(--saathi-accent-teal) 60%, var(--accent-navy) 100%)',
         }}
       >
         <h1 className="mb-3 text-4xl font-extrabold leading-tight text-white md:text-5xl">
-          Your Resume. Your Career.
-          <br />
-          <span style={{ color: 'var(--accent-gold)' }}>AI-Powered.</span>
+          Meet Saathi. Your Career Companion.
         </h1>
         <p className="mx-auto mb-8 max-w-lg text-white/70">
-          Build ATS-ready resumes. Analyze candidates against job descriptions.
-          Runs entirely in your browser. No data leaves your device.
+          Talk to Saathi like a friend. In any language. Your resume builds itself. Then see which jobs actually fit your life.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           {PILLS.map((pill) => (
@@ -56,19 +53,19 @@ export function Landing() {
             className="mb-2 text-lg font-bold"
             style={{ color: 'var(--accent-navy)' }}
           >
-            I'm a Student
+            Talk to Saathi
           </h2>
           <p
             className="mb-4 text-sm"
             style={{ color: 'var(--text-secondary)' }}
           >
-            Build your resume. 4 templates. Live preview. Print or download PDF.
+            Build your resume through conversation. Voice or text. Any language. Get a career health score for every opportunity.
           </p>
           <span
             className="inline-block rounded-lg px-6 py-2 text-sm font-bold text-white"
-            style={{ background: 'var(--accent-navy)' }}
+            style={{ background: 'var(--saathi-accent-teal)' }}
           >
-            Start Building
+            Start Talking
           </span>
         </Link>
 

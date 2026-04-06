@@ -89,6 +89,57 @@ export function CandidateDetail() {
         <ScoreBreakdown scores={candidate.scores} />
       </div>
 
+      {candidate.coachSuggestions && candidate.coachSuggestions.length > 0 && (
+        <section className="mt-6">
+          <h3
+            className="mb-3 text-lg font-bold"
+            style={{ color: 'var(--accent-navy)' }}
+          >
+            Coach Suggestions
+          </h3>
+          <div className="space-y-3">
+            {candidate.coachSuggestions.map((suggestion, i) => (
+              <div
+                key={i}
+                className="rounded-lg p-4"
+                style={{
+                  background:
+                    suggestion.severity === 'high'
+                      ? 'rgba(228,26,26,0.08)'
+                      : suggestion.severity === 'medium'
+                        ? 'rgba(255,220,0,0.08)'
+                        : 'rgba(46,204,64,0.08)',
+                  border: `1px solid ${
+                    suggestion.severity === 'high'
+                      ? 'var(--accent-red)'
+                      : suggestion.severity === 'medium'
+                        ? 'var(--accent-gold)'
+                        : '#2ecc40'
+                  }20`,
+                }}
+              >
+                <div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {suggestion.title}
+                </div>
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  {suggestion.description}
+                </p>
+                {suggestion.fix && (
+                  <p className="mt-1 text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                    Fix: {suggestion.fix}
+                  </p>
+                )}
+                {suggestion.citation && (
+                  <p className="mt-1 text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                    {suggestion.citation}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section
         className="rounded-lg p-4"
         style={{

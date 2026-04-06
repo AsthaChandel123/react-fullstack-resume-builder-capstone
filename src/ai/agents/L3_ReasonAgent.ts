@@ -1,7 +1,7 @@
 /**
- * L3 Reasoning Agent -- Gemma 4 E2B via WebLLM.
+ * L3 Reasoning Agent -- Gemma 4 E2B via Transformers.js.
  *
- * Loads gemma-4-E2B-it-ONNX in the browser via @mlc-ai/web-llm.
+ * Loads gemma-4-E2B-it-ONNX in the browser via @huggingface/transformers.
  * Runs on WebGPU (fast) or WASM CPU fallback (30-60s per analysis).
  * Model ~600MB, cached in IndexedDB after first download.
  *

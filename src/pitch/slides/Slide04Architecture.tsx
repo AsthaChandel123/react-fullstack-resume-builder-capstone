@@ -7,14 +7,14 @@ const layers = [
   },
   {
     id: 'L2',
-    label: 'L2: MiniLM Embeddings',
+    label: 'L2: E5-small Embeddings',
     desc: 'ONNX Runtime Web (WASM)',
     color: '#d4a800',
   },
   {
     id: 'L3',
     label: 'L3: Gemma 3 Reasoning',
-    desc: 'WebLLM (WebGPU + WASM)',
+    desc: 'Transformers.js (WebGPU + WASM)',
     color: '#182B49',
   },
   {

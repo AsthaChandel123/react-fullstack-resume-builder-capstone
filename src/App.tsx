@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { Layout } from './layout/Layout';
 import { Landing } from './pages/Landing';
-import { Builder } from './pages/Builder';
+const BuilderLegacy = lazy(() =>
+  import('./pages/Builder').then((m) => ({ default: m.Builder })),
+);
 import { PrintPreview } from './pages/PrintPreview';
 import { ModelDownloadScreen } from './ai/ModelDownloadScreen';
 import { isModelReady, preloadModel } from './ai/models/webllm';
@@ -25,6 +27,12 @@ const BridgeLanding = lazy(() => import('./pages/BridgeLanding'));
 const BridgeTest = lazy(() => import('./pages/BridgeTest'));
 const BridgeScorecard = lazy(() => import('./pages/BridgeScorecard'));
 const BridgeDashboard = lazy(() => import('./pages/BridgeDashboard'));
+const SaathiBuilder = lazy(() =>
+  import('./pages/SaathiBuilder').then((m) => ({ default: m.SaathiBuilder })),
+);
+const CandidateDashboard = lazy(() =>
+  import('./pages/CandidateDashboard').then((m) => ({ default: m.CandidateDashboard })),
+);
 
 function Loading() {
   return (
@@ -111,7 +119,9 @@ export function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Landing />} />
-            <Route path="builder" element={<Builder />} />
+            <Route path="builder" element={<SaathiBuilder />} />
+            <Route path="builder/form" element={<BuilderLegacy />} />
+            <Route path="builder/dashboard" element={<CandidateDashboard />} />
             <Route path="builder/preview" element={<PrintPreview />} />
             <Route path="employer" element={<Employer />} />
             <Route path="employer/publish" element={<EmployerPublish />} />

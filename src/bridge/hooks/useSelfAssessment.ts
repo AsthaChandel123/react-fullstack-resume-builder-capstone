@@ -7,7 +7,7 @@
  * Citations:
  * - NACE Job Outlook 2024 (skills weight 30%)
  * - Jaccard (1901) exact keyword matching
- * - Wang et al. (2020) MiniLM semantic similarity
+ * - Wang et al. (2024) E5 Text Embeddings (ACL)
  * - Salton (1975) TF-IDF fallback
  */
 
@@ -15,7 +15,7 @@ import { useState, useCallback } from 'react';
 import { useResumeStore } from '@/store/resumeStore';
 import { useBridgeStore } from '@/bridge/store';
 import { analyzeL1 } from '@/ai/agents/L1_NLPAgent';
-import { analyzeL2Sync } from '@/ai/agents/L2_EmbedAgent';
+import { analyzeL2, analyzeL2Sync } from '@/ai/agents/L2_EmbedAgent';
 import { computeScore } from '@/ai/agents/ScoreAgent';
 import type { BridgeCriteria, ScoreBreakdown } from '@/bridge/types';
 import type { Resume } from '@/store/types';
@@ -27,7 +27,7 @@ interface KeywordAnalysis {
 }
 
 interface SelfAssessmentReturn {
-  assess: (criteria: BridgeCriteria) => void;
+  assess: (criteria: BridgeCriteria) => Promise<void>;
   loading: boolean;
   result: ScoreBreakdown | null;
   keywordAnalysis: KeywordAnalysis | null;
@@ -188,7 +188,7 @@ export function useSelfAssessment(): SelfAssessmentReturn {
   const [result, setResult] = useState<ScoreBreakdown | null>(null);
   const [keywordAnalysis, setKeywordAnalysis] = useState<KeywordAnalysis | null>(null);
 
-  const assess = useCallback((criteria: BridgeCriteria) => {
+  const assess = useCallback(async (criteria: BridgeCriteria) => {
     setLoading(true);
 
     try {
@@ -198,7 +198,12 @@ export function useSelfAssessment(): SelfAssessmentReturn {
 
       // Pipeline: L1 -> L2 -> Score
       const l1 = analyzeL1(resumeText, jdText);
-      const l2 = analyzeL2Sync(resumeText, jdText);
+      let l2;
+      try {
+        l2 = await analyzeL2(resumeText, jdText);
+      } catch {
+        l2 = analyzeL2Sync(resumeText, jdText);
+      }
       const candidateScores = computeScore(l1, l2, null, null);
 
       // Build breakdown with custom weights from criteria

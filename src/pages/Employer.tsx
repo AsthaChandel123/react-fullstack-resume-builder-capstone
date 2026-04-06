@@ -60,6 +60,7 @@ export function Employer() {
         updateCandidate(c.id, {
           scores: result.scores,
           redFlags: result.redFlags,
+          coachSuggestions: result.coachSuggestions ?? undefined,
           analysisStatus: 'done',
           analysisLayers: [result.pipelineLevel],
         });

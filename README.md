@@ -41,7 +41,7 @@ No platform connects resume building, employer screening, and skill verification
 | Layer | Tech | Purpose |
 |-------|------|---------|
 | L1 | NLP | Keyword extraction, section detection, Jaccard + TF-IDF |
-| L2 | Embeddings | ONNX MiniLM-L6-v2 semantic similarity |
+| L2 | Embeddings | ONNX E5-small semantic similarity |
 | L3 | Gemma 4 E2B | In-browser reasoning (WebGPU) for red flag detection |
 | L4 | Gemini API | Cloud fallback when no WebGPU available |
 
@@ -60,7 +60,7 @@ Scoring weights cite: NACE 2024, AAC&U VALUE Rubric, Ladders Eye-Tracking 2018, 
 | | |
 |-|-|
 | Frontend | React 19, TypeScript 5.8, Vite 6, Tailwind CSS 4, Zustand 5 |
-| AI/ML | Gemma 4 E2B (Transformers.js), ONNX Runtime, TF-IDF, Gemini API |
+| AI/ML | Gemma 4 E2B (Transformers.js), ONNX E5-small, TF-IDF, Gemini API |
 | Backend | Firebase Auth, Firestore, Cloud Functions |
 | Testing | Vitest, React Testing Library, 419 tests |
 | Deploy | Google Cloud Run |

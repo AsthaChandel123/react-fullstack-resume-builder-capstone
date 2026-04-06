@@ -65,6 +65,14 @@ export interface Candidate {
   redFlags: RedFlag[];
   analysisLayers: AnalysisLayer[];
   analysisStatus: 'pending' | 'l1' | 'l2' | 'l3' | 'done' | 'error';
+  coachSuggestions?: Array<{
+    section: string;
+    severity: 'high' | 'medium' | 'tip';
+    title: string;
+    description: string;
+    fix?: string;
+    citation?: string;
+  }>;
 }
 
 export type AnalysisLayer = 'L1' | 'L2' | 'L3' | 'L4';
