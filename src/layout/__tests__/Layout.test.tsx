@@ -49,11 +49,14 @@ describe('Layout with Navbar and Footer', () => {
     expect(screen.getByText('Skip to content')).toBeInTheDocument();
   });
 
-  it('navigation links (Home, Builder, Employer) present', () => {
+  it('navigation has mode toggle and context links', () => {
     renderLayout();
-    expect(screen.getByText('Home')).toBeInTheDocument();
-    expect(screen.getByText('Builder')).toBeInTheDocument();
+    // Mode toggle buttons
+    expect(screen.getByText('Student')).toBeInTheDocument();
     expect(screen.getByText('Employer')).toBeInTheDocument();
+    // Default student mode shows builder link
+    expect(screen.getByText('Resume Builder')).toBeInTheDocument();
+    expect(screen.getByText('My Applications')).toBeInTheDocument();
   });
 
   it('main content area has correct id', () => {

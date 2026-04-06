@@ -1,22 +1,35 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
+import { useState } from 'react';
 
-const NAV_LINKS = [
-  { to: '/', label: 'Home' },
-  { to: '/builder', label: 'Builder' },
-  { to: '/employer', label: 'Employer' },
-  { to: '/employer/publish', label: 'Publish Criteria' },
-  { to: '/employer/matches', label: 'Match Signals' },
+type Mode = 'student' | 'employer';
+
+const STUDENT_LINKS = [
+  { to: '/builder', label: 'Resume Builder' },
   { to: '/bridge/dashboard', label: 'My Applications' },
 ] as const;
+
+const EMPLOYER_LINKS = [
+  { to: '/employer', label: 'Screen Resumes' },
+  { to: '/employer/publish', label: 'Publish Criteria' },
+  { to: '/employer/matches', label: 'Match Signals' },
+] as const;
+
+function getModeFromPath(path: string): Mode {
+  if (path.startsWith('/employer')) return 'employer';
+  return 'student';
+}
 
 export function Navbar() {
   const { theme, toggle } = useTheme();
   const { pathname } = useLocation();
+  const [mode, setMode] = useState<Mode>(() => getModeFromPath(pathname));
+
+  const links = mode === 'student' ? STUDENT_LINKS : EMPLOYER_LINKS;
 
   return (
     <nav
-      className="flex items-center justify-between px-6 py-3 print:hidden"
+      className="flex items-center justify-between px-4 sm:px-6 py-3 print:hidden"
       style={{ background: 'var(--accent-navy)' }}
       role="navigation"
       aria-label="Main navigation"
@@ -45,18 +58,45 @@ export function Navbar() {
             ResumeAI
           </div>
           <div className="text-xs leading-tight text-white/50">
-            Shoolini University &middot; BTech CSE Capstone
+            Shoolini University
           </div>
         </div>
       </Link>
 
-      <div className="flex items-center gap-6">
-        {NAV_LINKS.map(({ to, label }) => (
+      <div className="flex items-center gap-4 sm:gap-6">
+        {/* Mode toggle */}
+        <div className="flex rounded-full bg-white/10 p-0.5 text-xs">
+          <button
+            onClick={() => setMode('student')}
+            className={`rounded-full px-3 py-1 transition-colors ${
+              mode === 'student'
+                ? 'bg-white text-gray-900 font-bold'
+                : 'text-white/70 hover:text-white'
+            }`}
+            aria-pressed={mode === 'student'}
+          >
+            Student
+          </button>
+          <button
+            onClick={() => setMode('employer')}
+            className={`rounded-full px-3 py-1 transition-colors ${
+              mode === 'employer'
+                ? 'bg-white text-gray-900 font-bold'
+                : 'text-white/70 hover:text-white'
+            }`}
+            aria-pressed={mode === 'employer'}
+          >
+            Employer
+          </button>
+        </div>
+
+        {/* Context-specific links */}
+        {links.map(({ to, label }) => (
           <Link
             key={to}
             to={to}
             className={`text-sm no-underline transition-colors ${
-              pathname === to
+              pathname === to || pathname.startsWith(to + '/')
                 ? 'border-b-2 border-[var(--accent-red)] pb-0.5 font-bold text-white'
                 : 'text-white/70 hover:text-white'
             }`}
