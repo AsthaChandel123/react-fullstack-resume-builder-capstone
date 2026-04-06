@@ -25,14 +25,19 @@ import type { Resume } from '@/store/types';
 
 type Severity = 'high' | 'medium' | 'tip';
 
+type SuggestionCategory = 'missing-skill' | 'summary' | 'quantified' | 'other';
+
 interface Suggestion {
   id: string;
   severity: Severity;
   section: string;
+  category: SuggestionCategory;
   current: string;
   suggestedFix: string;
   impact: number;
   reason: string;
+  /** For missing-skill suggestions, the skill name to add */
+  skillName?: string;
 }
 
 interface Props {
@@ -92,11 +97,13 @@ function generateSuggestions(
         id: `s-${idCounter++}`,
         severity: 'high',
         section: 'Skills',
+        category: 'missing-skill',
         current: `"${skill}" not found in your resume`,
         suggestedFix: `Add "${skill}" to your skills section. If you have experience with it, mention it in your project or experience bullets too.`,
         impact: 3,
         reason:
           'Required skills are the #1 screening attribute. NACE Job Outlook 2024: employers rank skills above GPA, major, and experience.',
+        skillName: skill,
       });
     }
   }
@@ -108,6 +115,7 @@ function generateSuggestions(
       id: `s-${idCounter++}`,
       severity: 'high',
       section: 'Summary',
+      category: 'summary',
       current: 'No summary/objective section',
       suggestedFix: `Write a 2-3 sentence summary highlighting your fit for "${criteria.jobTitle}". Mention your strongest relevant skill and a concrete achievement.`,
       impact: 4,
@@ -119,6 +127,7 @@ function generateSuggestions(
       id: `s-${idCounter++}`,
       severity: 'medium',
       section: 'Summary',
+      category: 'summary',
       current: 'Summary is too short (under 50 characters)',
       suggestedFix: `Expand your summary to 2-3 sentences. Include your target role, top skills for "${criteria.jobTitle}", and a quantified achievement.`,
       impact: 2,
@@ -135,6 +144,7 @@ function generateSuggestions(
         id: `s-${idCounter++}`,
         severity: 'medium',
         section: 'Summary',
+        category: 'summary',
         current: `Contains generic words: ${foundGeneric.join(', ')}`,
         suggestedFix: `Replace generic words with specific skills or measurable outcomes. Instead of "${foundGeneric[0]}", mention a concrete technology or achievement number.`,
         impact: 2,
@@ -164,6 +174,7 @@ function generateSuggestions(
         id: `s-${idCounter++}`,
         severity: 'high',
         section: 'Experience / Projects',
+        category: 'quantified',
         current: 'No bullets contain quantified results (%, $, Nx)',
         suggestedFix:
           'Add numbers to your bullet points. Examples: "Reduced load time by 40%", "Served 1000+ users", "Cut costs by $5K". Even approximate numbers help.',
@@ -176,6 +187,7 @@ function generateSuggestions(
         id: `s-${idCounter++}`,
         severity: 'medium',
         section: 'Experience / Projects',
+        category: 'quantified',
         current: `Only ${quantifiedCount} of ${allBullets.length} bullets have numbers`,
         suggestedFix: `Aim for at least half your bullets to include measurable outcomes. Add metrics like user counts, performance improvements, or scope numbers.`,
         impact: 3,
@@ -194,6 +206,7 @@ function generateSuggestions(
       id: `s-${idCounter++}`,
       severity: 'high',
       section: 'Education',
+      category: 'other',
       current: 'No education entries found',
       suggestedFix:
         'Add your education details: degree, institution, graduation year. For freshers, education is the #2 most-scanned section after name.',
@@ -216,6 +229,7 @@ function generateSuggestions(
       id: `s-${idCounter++}`,
       severity: 'high',
       section: 'Experience / Projects',
+      category: 'other',
       current: 'No experience or project entries found',
       suggestedFix:
         'Add at least 2-3 projects or experience entries. For each, include a title, brief description, technologies used, and your specific contribution with outcomes.',
@@ -249,10 +263,49 @@ const SEVERITY_STYLES: Record<Severity, { border: string; badge: string; badgeTe
   },
 };
 
+function getApplyLabel(category: SuggestionCategory): string | null {
+  switch (category) {
+    case 'missing-skill':
+      return 'Add to Skills';
+    case 'summary':
+    case 'quantified':
+      return 'Edit in Builder';
+    default:
+      return null;
+  }
+}
+
 export function JDCoachPanel({ criteria, onRescore }: Props) {
   const selfAssessment = useBridgeStore((s) => s.selfAssessment);
   const resume = useResumeStore((s) => s.resume);
+  const addEntry = useResumeStore((s) => s.addEntry);
+  const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+
+  const handleApply = useCallback(
+    (suggestion: Suggestion) => {
+      if (suggestion.category === 'missing-skill' && suggestion.skillName) {
+        const skillsSection = resume.sections.find(
+          (s) => s.type === 'skills',
+        );
+        if (skillsSection) {
+          addEntry(skillsSection.id, {
+            id: uuid(),
+            fields: { skill: suggestion.skillName },
+            bullets: [],
+          });
+          setApplied((prev) => new Set([...prev, suggestion.id]));
+        }
+      } else if (
+        suggestion.category === 'summary' ||
+        suggestion.category === 'quantified'
+      ) {
+        navigate('/builder');
+      }
+    },
+    [resume.sections, addEntry, navigate],
+  );
 
   const suggestions = useMemo(
     () => generateSuggestions(resume, criteria),
@@ -296,6 +349,8 @@ export function JDCoachPanel({ criteria, onRescore }: Props) {
 
       {visibleSuggestions.map((suggestion) => {
         const style = SEVERITY_STYLES[suggestion.severity];
+        const applyLabel = getApplyLabel(suggestion.category);
+        const isApplied = applied.has(suggestion.id);
 
         return (
           <div
@@ -353,9 +408,30 @@ export function JDCoachPanel({ criteria, onRescore }: Props) {
               {suggestion.suggestedFix}
             </div>
 
-            <p className="text-xs text-gray-500 italic">
-              {suggestion.reason}
-            </p>
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-xs text-gray-500 italic">
+                {suggestion.reason}
+              </p>
+              {applyLabel && (
+                <button
+                  type="button"
+                  disabled={isApplied}
+                  onClick={() => handleApply(suggestion)}
+                  className={`ml-3 shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-blue-600 ${
+                    isApplied
+                      ? 'cursor-default bg-green-100 text-green-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                  aria-label={
+                    isApplied
+                      ? `${suggestion.skillName} added to skills`
+                      : `${applyLabel}: ${suggestion.section}`
+                  }
+                >
+                  {isApplied ? 'Added' : applyLabel}
+                </button>
+              )}
+            </div>
           </div>
         );
       })}
