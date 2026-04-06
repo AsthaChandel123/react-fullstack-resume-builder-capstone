@@ -68,9 +68,10 @@ export const startTestSession = onCall(async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in required.');
 
-  const { criteriaCode, resumePin } = request.data as {
+  const { criteriaCode, resumePin, deviceId } = request.data as {
     criteriaCode: string;
     resumePin: string;
+    deviceId?: string;
   };
 
   if (!criteriaCode || !resumePin) {
@@ -95,11 +96,28 @@ export const startTestSession = onCall(async (request) => {
     throw new HttpsError('already-exists', 'This resume was already tested against these criteria.');
   }
 
+  // Anti-gaming: block same device retesting same criteria (different browser trick)
+  if (deviceId) {
+    const deviceSessions = await db
+      .collection('sessions')
+      .where('criteriaCode', '==', criteriaCode)
+      .where('deviceId', '==', deviceId)
+      .where('status', '==', 'completed')
+      .limit(1)
+      .get();
+
+    if (!deviceSessions.empty) {
+      throw new HttpsError('already-exists',
+        'This device already completed a test for these criteria. Cannot retest from the same device.');
+    }
+  }
+
   const sessionRef = db.collection('sessions').doc();
   await sessionRef.set({
     candidateId: uid,
     criteriaCode,
     resumePin,
+    deviceId: deviceId || null,
     status: 'active',
     startedAt: admin.firestore.FieldValue.serverTimestamp(),
     lastHeartbeat: admin.firestore.FieldValue.serverTimestamp(),

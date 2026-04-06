@@ -14,6 +14,7 @@ import { createAudioMonitor } from '../test/audioMonitor';
 import { generateTestQuestions } from '../test/questionGenerator';
 import { getNextLevel, computeVerificationScore, computeIntegrityScore } from '../test/adaptiveScoring';
 import { createResumePin } from '../resumePin';
+import { getDeviceId } from '../../firebase/deviceId';
 import type {
   BridgeCriteria,
   Calibration,
@@ -191,8 +192,9 @@ export function TestEngine({ criteriaCode }: Props) {
       try {
         const { app } = initFirebase();
         const functions = getFunctions(app);
+        const deviceId = await getDeviceId();
         const startSession = httpsCallable(functions, 'startTestSession');
-        await startSession({ criteriaCode, resumePin: pin });
+        await startSession({ criteriaCode, resumePin: pin, deviceId });
       } catch {
         // Non-critical: continue even if server session fails
       }
