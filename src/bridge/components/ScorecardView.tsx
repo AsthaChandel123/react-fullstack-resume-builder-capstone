@@ -9,6 +9,7 @@
 import { useEffect, useState, useCallback, useRef, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { initFirebase, isFirebaseConfigured } from '../../firebase/config';
 import { getCurrentUser } from '../../firebase/auth';
 import { useBridgeStore } from '../store';
@@ -90,6 +91,7 @@ export function ScorecardView({ criteriaCode }: Props) {
   const [matchSent, setMatchSent] = useState(false);
   const [matchError, setMatchError] = useState<string | null>(null);
   const signAttempted = useRef(false);
+  const [versionMismatch, setVersionMismatch] = useState(false);
 
   // Contact form state
   const [contactName, setContactName] = useState('');
@@ -165,6 +167,33 @@ export function ScorecardView({ criteriaCode }: Props) {
     sign();
   }, [scorecard, state, criteria, testSession, selfAssessment, criteriaCode, setScorecard]);
 
+  // Check if criteria changed since scorecard was signed
+  useEffect(() => {
+    if (!scorecard?.criteriaHash) return;
+    if (!isFirebaseConfigured()) return;
+
+    let cancelled = false;
+
+    async function checkVersion() {
+      try {
+        const { app } = initFirebase();
+        const db = getFirestore(app);
+        const snap = await getDoc(doc(db, 'criteria', criteriaCode));
+        if (cancelled || !snap.exists()) return;
+
+        const currentHash = await hashString(JSON.stringify(snap.data()));
+        if (!cancelled && currentHash !== scorecard!.criteriaHash) {
+          setVersionMismatch(true);
+        }
+      } catch {
+        // Non-critical check; fail silently
+      }
+    }
+
+    checkVersion();
+    return () => { cancelled = true; };
+  }, [scorecard, criteriaCode]);
+
   const handleMatchSignal = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
@@ -238,6 +267,13 @@ export function ScorecardView({ criteriaCode }: Props) {
       {signError && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
           {signError}
+        </div>
+      )}
+
+      {versionMismatch && (
+        <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800" role="note">
+          This scorecard was scored against an earlier version of the criteria.
+          The employer may have updated their requirements.
         </div>
       )}
 
