@@ -14,6 +14,7 @@ const EMPLOYER_LINKS = [
   { to: '/employer', label: 'Screen Resumes' },
   { to: '/employer/publish', label: 'Publish Criteria' },
   { to: '/employer/matches', label: 'Match Signals' },
+  { to: '/employer/criteria', label: 'My Criteria' },
 ] as const;
 
 function getModeFromPath(path: string): Mode {
