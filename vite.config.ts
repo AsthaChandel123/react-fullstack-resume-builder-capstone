@@ -29,14 +29,6 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/shooliniuniversity\.com\/assets\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'shoolini-assets',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
         ],
       },
     }),

@@ -7,7 +7,7 @@ export function Slide10ThankYou() {
       }}
     >
       <img
-        src="https://shooliniuniversity.com/assets/images/logo.png"
+        src="/assets/images/shoolini-logo.png"
         alt="Shoolini University logo"
         className="mb-8 h-20 w-auto"
         crossOrigin="anonymous"

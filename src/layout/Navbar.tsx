@@ -34,7 +34,7 @@ export function Navbar() {
         aria-label="ResumeAI home"
       >
         <img
-          src="https://shooliniuniversity.com/assets/images/logo.png"
+          src="/assets/images/shoolini-logo.png"
           alt="Shoolini University logo"
           className="h-9 w-9 rounded-md bg-white object-contain p-0.5"
           width={36}

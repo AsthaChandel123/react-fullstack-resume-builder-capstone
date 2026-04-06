@@ -16,7 +16,7 @@ export function Footer() {
       </div>
       <div className="flex items-center gap-2 text-right">
         <img
-          src="https://shooliniuniversity.com/assets/images/logo.png"
+          src="/assets/images/shoolini-logo.png"
           alt="Shoolini University"
           className="h-6 w-6 rounded bg-white object-contain p-0.5"
           width={24}
