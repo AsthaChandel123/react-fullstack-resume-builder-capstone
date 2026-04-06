@@ -25,7 +25,7 @@ import {
 import { analyzeWithGemini } from './agents/L4_FallbackAgent';
 import { computeScore } from './agents/ScoreAgent';
 import { getDistance } from './agents/DistanceAgent';
-import { detectCapabilities } from './models/capabilities';
+// detectCapabilities no longer gates L3 -- we always attempt it
 
 export interface PipelineConfig {
   geminiApiKey?: string;
@@ -40,6 +40,8 @@ export interface PipelineProgress {
   scores: CandidateScores | null;
   redFlags: RedFlag[];
   error?: string;
+  /** The highest AI layer that produced results for this candidate */
+  pipelineLevel?: 'L1' | 'L2' | 'L3' | 'L4';
 }
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
@@ -79,18 +81,17 @@ export async function analyzeResume(
   onProgress?.({ candidateId, layer: 'L2', scores: null, redFlags: [] });
 
   // --- Layer 3: Reasoning (Gemma 4 E2B via WebLLM) ---
+  // Always attempt L3 first. Only skip if it genuinely fails.
   let l3: L3Result | null = null;
-  const capabilities = await detectCapabilities();
+  let activeLevel: 'L1' | 'L2' | 'L3' | 'L4' = 'L2';
 
-  if (capabilities.canRunL3) {
-    try {
-      // Try Gemma 4 E2B locally via WebLLM
-      l3 = await analyzeL3(resumeText, jdText);
-      redFlags = l3.redFlags;
-    } catch {
-      // WebLLM failed -- try L4 Gemini API fallback
-      l3 = null;
-    }
+  try {
+    l3 = await analyzeL3(resumeText, jdText);
+    redFlags = l3.redFlags;
+    activeLevel = 'L3';
+  } catch {
+    // L3 genuinely failed (model download error, WebGPU/WASM unavailable)
+    l3 = null;
   }
 
   // --- Layer 4: Gemini API fallback -- only if L3 failed entirely ---
@@ -127,13 +128,14 @@ export async function analyzeResume(
           reasoning: '',
         };
       }
+      activeLevel = 'L4';
     } catch {
       // L4 also failed -- continue with L1+L2 only
       l3 = null;
     }
   }
 
-  onProgress?.({ candidateId, layer: 'L3', scores: null, redFlags });
+  onProgress?.({ candidateId, layer: 'L3', scores: null, redFlags, pipelineLevel: activeLevel });
 
   // --- Distance (optional, async, online-only) ---
   let distance: { km: number } | null = null;
@@ -154,7 +156,7 @@ export async function analyzeResume(
   // --- Score computation (spec section 6.13) ---
   const scores = computeScore(l1, l2, l3, distance);
 
-  onProgress?.({ candidateId, layer: 'done', scores, redFlags });
+  onProgress?.({ candidateId, layer: 'done', scores, redFlags, pipelineLevel: activeLevel });
 
   return { scores, redFlags };
 }

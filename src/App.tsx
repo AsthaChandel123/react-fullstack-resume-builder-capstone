@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Layout } from './layout/Layout';
 import { Landing } from './pages/Landing';
 import { Builder } from './pages/Builder';
 import { PrintPreview } from './pages/PrintPreview';
+import { ModelDownloadScreen } from './ai/ModelDownloadScreen';
+import { isModelReady } from './ai/models/webllm';
 
 const Employer = lazy(() =>
   import('./pages/Employer').then((m) => ({ default: m.Employer })),
@@ -41,6 +43,29 @@ function Loading() {
 }
 
 export function App() {
+  const [modelState, setModelState] = useState<'checking' | 'downloading' | 'ready' | 'skipped'>('checking');
+
+  useEffect(() => {
+    if (isModelReady()) {
+      setModelState('ready');
+    } else {
+      setModelState('downloading');
+    }
+  }, []);
+
+  if (modelState === 'checking') {
+    return <Loading />;
+  }
+
+  if (modelState === 'downloading') {
+    return (
+      <ModelDownloadScreen
+        onReady={() => setModelState('ready')}
+        onSkip={() => setModelState('skipped')}
+      />
+    );
+  }
+
   return (
     <BrowserRouter>
       <Suspense fallback={<Loading />}>

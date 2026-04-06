@@ -33,6 +33,7 @@ type TextGenerationPipeline = (
 
 let pipelineInstance: TextGenerationPipeline | null = null;
 let loadingPromise: Promise<TextGenerationPipeline> | null = null;
+let modelDownloaded = false;
 
 export type ProgressCallback = (report: {
   progress: number;
@@ -99,6 +100,7 @@ export async function getOrCreateEngine(
     })) as unknown as TextGenerationPipeline;
 
     pipelineInstance = pipe;
+    modelDownloaded = true;
     loadingPromise = null;
 
     onProgress?.({ progress: 1, text: 'Gemma 4 E2B ready.' });
@@ -139,6 +141,22 @@ ${prompt}<end_of_turn>
  */
 export function isEngineReady(): boolean {
   return pipelineInstance !== null;
+}
+
+/**
+ * Check if the model is cached/downloaded in browser storage.
+ * Returns true if pipeline is loaded or if a previous download completed.
+ */
+export function isModelReady(): boolean {
+  return pipelineInstance !== null || modelDownloaded;
+}
+
+/**
+ * Preload the model without generating any text.
+ * Downloads the model weights and initializes the pipeline.
+ */
+export async function preloadModel(onProgress?: ProgressCallback): Promise<void> {
+  await getOrCreateEngine(onProgress);
 }
 
 /**

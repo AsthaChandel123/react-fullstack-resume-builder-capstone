@@ -2,7 +2,32 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEmployerStore } from '../../store/employerStore';
 import { ScoreBadge } from './ScoreBadge';
-import type { Candidate } from '../../store/types';
+import type { Candidate, AnalysisLayer } from '../../store/types';
+
+function AILevelBadge({ layers }: { layers: AnalysisLayer[] }) {
+  const highest = layers.includes('L3') || layers.includes('L4')
+    ? 'L3'
+    : layers.includes('L2')
+      ? 'L2'
+      : 'L1';
+
+  const config = {
+    L3: { bg: '#2ecc4020', color: '#2ecc40', label: 'L3' },
+    L2: { bg: '#ffdc0020', color: '#b8a000', label: 'L2' },
+    L1: { bg: '#88888820', color: '#888888', label: 'L1' },
+  }[highest];
+
+  return (
+    <span
+      className="rounded px-1.5 py-0.5 text-[10px] font-bold leading-tight"
+      style={{ backgroundColor: config.bg, color: config.color }}
+      title={`Analyzed with ${highest} AI pipeline`}
+      aria-label={`AI level ${highest}`}
+    >
+      {config.label}
+    </span>
+  );
+}
 
 type SortKey =
   | 'rank'
@@ -185,7 +210,10 @@ export function CandidateTable() {
                   <td className="px-4 py-3 font-medium">{i + 1}</td>
                   <td className="px-4 py-3 font-medium">{c.name}</td>
                   <td className="px-4 py-3">
-                    <ScoreBadge score={c.scores.overall} label="ATS Score" />
+                    <span className="inline-flex items-center gap-1.5">
+                      <ScoreBadge score={c.scores.overall} label="ATS Score" />
+                      <AILevelBadge layers={c.analysisLayers} />
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     {c.scores.skillsMatch.matched.length}/{skillsTotal}
