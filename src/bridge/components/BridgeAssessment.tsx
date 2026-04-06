@@ -23,14 +23,18 @@ export function BridgeAssessment({ criteriaCode }: Props) {
   const criteria = useBridgeStore((s) => s.criteria);
   const setCriteria = useBridgeStore((s) => s.setCriteria);
   const resume = useResumeStore((s) => s.resume);
+  const resumeLoaded = useResumeStore((s) => s.loaded);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [criteriaLoading, setCriteriaLoading] = useState(false);
+  const [uploadedResumeText, setUploadedResumeText] = useState('');
 
-  // Check if resume has meaningful content
-  const hasResume =
+  // Check if resume has meaningful content (wait for store to load)
+  const hasResume = !resumeLoaded ? true : (
     resume.personal.name.trim().length > 0 ||
     resume.summary.trim().length > 0 ||
-    resume.sections.some((s) => s.entries.length > 0);
+    resume.sections.some((s) => s.entries.length > 0) ||
+    uploadedResumeText.length > 0
+  );
 
   // Load criteria from Firestore on mount (cache in bridge store)
   useEffect(() => {
@@ -98,22 +102,47 @@ export function BridgeAssessment({ criteriaCode }: Props) {
     );
   }
 
+  // Handle resume file upload (PDF/TXT)
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setUploadedResumeText(text);
+    } catch {
+      setLoadError('Could not read the file.');
+    }
+  };
+
   // No resume built
   if (!hasResume) {
     return (
       <div className="mx-auto max-w-2xl rounded-lg border border-amber-200 bg-amber-50 p-8 text-center">
         <h2 className="mb-2 text-xl font-bold text-amber-900">
-          Build your resume first
+          Add your resume
         </h2>
-        <p className="mb-4 text-amber-800">
-          You need a resume before scoring it against this job.
+        <p className="mb-6 text-amber-800">
+          Build a resume in the builder, or upload an existing one.
         </p>
-        <a
-          href="/builder"
-          className="inline-block rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-600"
-        >
-          Go to Resume Builder
-        </a>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a
+            href="/builder"
+            className="inline-block rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-600"
+          >
+            Build in Editor
+          </a>
+          <span className="text-sm text-amber-700">or</span>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border-2 border-blue-600 px-6 py-3 font-medium text-blue-700 transition-colors hover:bg-blue-50">
+            Upload Resume (.txt)
+            <input
+              type="file"
+              accept=".txt,.text"
+              onChange={handleResumeUpload}
+              className="hidden"
+              aria-label="Upload your resume"
+            />
+          </label>
+        </div>
       </div>
     );
   }
