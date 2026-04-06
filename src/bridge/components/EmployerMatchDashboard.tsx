@@ -138,6 +138,15 @@ export default function EmployerMatchDashboard() {
     </button>
   );
 
+  if (showAuth) {
+    return (
+      <AuthModal
+        onAuth={() => { setShowAuth(false); window.location.reload(); }}
+        onClose={() => setShowAuth(false)}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16" role="status" aria-label="Loading matches">
@@ -156,13 +165,6 @@ export default function EmployerMatchDashboard() {
   }
 
   return (
-    <>
-    {showAuth && (
-      <AuthModal
-        onAuth={() => { setShowAuth(false); window.location.reload(); }}
-        onClose={() => setShowAuth(false)}
-      />
-    )}
     <div className="max-w-6xl mx-auto">
       <h2 className="text-xl font-bold mb-4">Incoming Match Signals</h2>
 
@@ -297,6 +299,5 @@ export default function EmployerMatchDashboard() {
         </div>
       )}
     </div>
-    </>
   );
 }

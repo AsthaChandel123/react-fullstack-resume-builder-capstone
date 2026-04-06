@@ -109,6 +109,15 @@ export default function CandidateDashboard() {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  if (showAuth) {
+    return (
+      <AuthModal
+        onAuth={() => { setShowAuth(false); window.location.reload(); }}
+        onClose={() => setShowAuth(false)}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16" role="status" aria-label="Loading applications">
@@ -146,12 +155,6 @@ export default function CandidateDashboard() {
 
   return (
     <>
-    {showAuth && (
-      <AuthModal
-        onAuth={() => { setShowAuth(false); window.location.reload(); }}
-        onClose={() => setShowAuth(false)}
-      />
-    )}
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold">My Applications</h2>

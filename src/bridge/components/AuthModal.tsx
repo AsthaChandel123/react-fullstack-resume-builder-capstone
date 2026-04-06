@@ -44,6 +44,8 @@ export function AuthModal({ onAuth, onClose }: AuthModalProps) {
       const msg = err instanceof Error ? err.message : 'Google sign-in failed';
       if (msg.includes('popup-closed-by-user')) {
         setError('');
+      } else if (msg.includes('invalid_client') || msg.includes('OAuth')) {
+        setError('Google Sign-In is not configured yet. Use email or guest sign-in instead.');
       } else {
         setError(msg);
       }
