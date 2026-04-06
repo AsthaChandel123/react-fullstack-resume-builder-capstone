@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../../firebase/config';
 import { getCurrentUser } from '../../firebase/auth';
-import { ensureAuth } from '../../firebase/autoAuth';
+import { ensureAuth, bindEmailToDevice } from '../../firebase/autoAuth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { initFirebase } from '../../firebase/config';
 import { useBridgeStore } from '../store';
@@ -172,6 +172,11 @@ export function TestEngine({ criteriaCode }: Props) {
       setGeneratingProgress('Pinning your resume...');
       const resumeScore = 0; // Will be computed later
       const pin = await createResumePin(resume, resumeScore);
+
+      // Bind resume email to device fingerprint for identity tracking
+      if (resume.personal.email) {
+        bindEmailToDevice(resume.personal.email).catch(() => {});
+      }
 
       const user = getCurrentUser();
       if (!user) {

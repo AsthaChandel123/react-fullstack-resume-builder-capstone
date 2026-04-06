@@ -1,7 +1,7 @@
 import { getCurrentUser, signInAnon } from './auth';
 import { isFirebaseConfigured, getDb } from './config';
 import { getDeviceId } from './deviceId';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
 
 /**
  * Ensure a Firebase user exists. Signs in anonymously if needed.
@@ -56,5 +56,44 @@ export async function ensureAuth() {
     return user;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Bind an email (from resume) to the current device fingerprint.
+ * Tracks email <-> device mapping for identity verification.
+ *
+ * Rules:
+ * - One email can have multiple devices (work laptop + phone = legit)
+ * - One device switching emails = tracked (could be legit or gaming)
+ * - Employer sees: "this candidate uses N devices" and
+ *   "this device has been used with N different emails"
+ */
+export async function bindEmailToDevice(email: string) {
+  if (!email || !isFirebaseConfigured()) return;
+
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.includes('@')) return;
+
+  try {
+    const deviceId = await getDeviceId();
+    const db = getDb();
+
+    // 1. Add this device to the email's device list
+    const emailRef = doc(db, 'emailDevices', normalized.replace(/[.@]/g, '_'));
+    await setDoc(emailRef, {
+      email: normalized,
+      devices: arrayUnion(deviceId),
+      lastSeen: new Date().toISOString(),
+    }, { merge: true });
+
+    // 2. Add this email to the device's email list
+    const deviceRef = doc(db, 'devices', deviceId);
+    await setDoc(deviceRef, {
+      emails: arrayUnion(normalized),
+      lastSeen: new Date().toISOString(),
+    }, { merge: true });
+  } catch {
+    // Non-blocking. Firestore may not be writable.
   }
 }
