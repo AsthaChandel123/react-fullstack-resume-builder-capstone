@@ -221,7 +221,7 @@ const QUESTION_TYPES: QuestionType[] = [
 
 export async function generateTestQuestions(
   skills: string[],
-  resumeClaims: string[],
+  resumeClaims: Record<string, string[]>,
   candidateWpm: number,
   questionsPerSkill: number,
   geminiApiKey: string,
@@ -229,6 +229,7 @@ export async function generateTestQuestions(
   const questions: GeneratedQuestion[] = [];
 
   for (const skill of skills) {
+    const claims = resumeClaims[skill] ?? [];
     for (let i = 0; i < questionsPerSkill; i++) {
       const type = QUESTION_TYPES[i % QUESTION_TYPES.length];
       const level = (Math.min(i + 1, 5)) as DifficultyLevel;
@@ -236,7 +237,7 @@ export async function generateTestQuestions(
         skill,
         level,
         type,
-        resumeClaims,
+        claims,
         candidateWpm,
         geminiApiKey,
       );

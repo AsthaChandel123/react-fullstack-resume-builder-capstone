@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { initFirebase, isFirebaseConfigured } from '../../firebase/config';
+import { doc, updateDoc } from 'firebase/firestore';
+import { initFirebase, isFirebaseConfigured, getDb } from '../../firebase/config';
 import { getCurrentUser } from '../../firebase/auth';
 import { DEFAULT_WEIGHTS, type CustomSignal, type TestConfig } from '../types';
 import WeightEditor from './WeightEditor';

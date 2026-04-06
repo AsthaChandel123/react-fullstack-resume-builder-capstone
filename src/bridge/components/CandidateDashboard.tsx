@@ -56,7 +56,7 @@ export default function CandidateDashboard() {
         codes.map(async (code) => {
           if (jobTitles[code]) { titles[code] = jobTitles[code]; return; }
           try {
-            const criteriaDoc = await getDoc(doc(db, 'bridgeCriteria', code));
+            const criteriaDoc = await getDoc(doc(db, 'criteria', code));
             if (criteriaDoc.exists()) {
               titles[code] = (criteriaDoc.data() as BridgeCriteria).jobTitle;
             } else {
@@ -77,7 +77,7 @@ export default function CandidateDashboard() {
           if (replies[m.matchId]) { replyData[m.matchId] = replies[m.matchId]; return; }
           try {
             const repliesSnap = await getDocs(
-              query(collection(db, 'employerReplies'), where('matchId', '==', m.matchId))
+              query(collection(db, 'replies'), where('matchId', '==', m.matchId))
             );
             if (!repliesSnap.empty) {
               const r = repliesSnap.docs[0].data() as EmployerReplyData;

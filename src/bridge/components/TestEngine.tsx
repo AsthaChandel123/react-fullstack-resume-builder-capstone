@@ -189,8 +189,7 @@ export function TestEngine({ criteriaCode }: Props) {
         // Non-critical: continue even if server session fails
       }
 
-      // Extract resume claims per skill
-      const skillsClaimed = pin.skillsClaimed;
+      // Extract resume claims per skill (actual bullet points, not just skill names)
       const skillsToTest = activeCriteria.testConfig.skillsToTest.length > 0
         ? activeCriteria.testConfig.skillsToTest
         : activeCriteria.requiredSkills;
@@ -199,12 +198,28 @@ export function TestEngine({ criteriaCode }: Props) {
         Math.ceil(activeCriteria.testConfig.questionCount / Math.max(1, skillsToTest.length)),
       );
 
+      // Build per-skill claims from resume bullet points
+      const currentResume = useResumeStore.getState().resume;
+      const allBullets = currentResume.sections.flatMap((s) =>
+        s.entries.flatMap((e) => [
+          ...Object.values(e.fields).filter(Boolean),
+          ...e.bullets.filter(Boolean),
+        ]),
+      );
+      const resumeClaims: Record<string, string[]> = {};
+      for (const skill of skillsToTest) {
+        const lower = skill.toLowerCase();
+        resumeClaims[skill] = allBullets.filter((b) =>
+          b.toLowerCase().includes(lower),
+        );
+      }
+
       // Generate questions via Gemini
       setGeneratingProgress('Generating questions...');
       const geminiKey = import.meta.env.VITE_GEMINI_API_KEY ?? '';
       const questions = await generateTestQuestions(
         skillsToTest,
-        skillsClaimed,
+        resumeClaims,
         cal.wpm,
         questionsPerSkill,
         geminiKey,

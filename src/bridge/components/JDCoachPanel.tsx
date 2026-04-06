@@ -16,8 +16,9 @@
  * - AAC&U VALUE Rubrics (quantified outcomes)
  */
 
-import { useState, useMemo } from 'react';
-import { useResumeStore } from '@/store/resumeStore';
+import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useResumeStore, uuid } from '@/store/resumeStore';
 import { useBridgeStore } from '../store';
 import type { BridgeCriteria } from '../types';
 import type { Resume } from '@/store/types';
