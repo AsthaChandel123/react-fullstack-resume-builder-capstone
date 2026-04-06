@@ -51,6 +51,9 @@ export default function CriteriaPublishForm() {
   const [error, setError] = useState('');
   const [shortCode, setShortCode] = useState('');
   const [showAuth, setShowAuth] = useState(false);
+  const [criteriaStatus, setCriteriaStatus] = useState<'active' | 'paused' | 'closed'>('active');
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  const [statusError, setStatusError] = useState('');
 
   function extractSkills() {
     const { required, preferred } = extractSkillsFromJD(description);
@@ -129,8 +132,120 @@ export default function CriteriaPublishForm() {
     }
   }
 
+  async function updateCriteriaStatus(newStatus: 'paused' | 'active' | 'closed') {
+    setStatusError('');
+    setStatusUpdating(true);
+    try {
+      const db = getDb();
+      await updateDoc(doc(db, 'criteria', shortCode), { status: newStatus });
+      setCriteriaStatus(newStatus);
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : 'Failed to update status.');
+    } finally {
+      setStatusUpdating(false);
+    }
+  }
+
   if (shortCode) {
-    return <SharePanel shortCode={shortCode} />;
+    return (
+      <div className="space-y-4 max-w-2xl mx-auto">
+        <SharePanel shortCode={shortCode} />
+
+        {/* Criteria Management */}
+        <div
+          className="rounded-lg border border-gray-200 bg-white p-5 space-y-4"
+          role="region"
+          aria-label="Criteria management"
+        >
+          <h3 className="text-lg font-semibold text-gray-900">Manage Criteria</h3>
+
+          {/* Current status */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Status:</span>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                criteriaStatus === 'active'
+                  ? 'bg-green-100 text-green-800'
+                  : criteriaStatus === 'paused'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-red-100 text-red-800'
+              }`}
+            >
+              {criteriaStatus === 'active' ? 'Active' : criteriaStatus === 'paused' ? 'Paused' : 'Closed'}
+            </span>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-3">
+            {criteriaStatus === 'active' && (
+              <>
+                <button
+                  type="button"
+                  disabled={statusUpdating}
+                  onClick={() => updateCriteriaStatus('paused')}
+                  className="rounded bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-2 focus:outline-amber-500"
+                >
+                  {statusUpdating ? 'Updating...' : 'Pause Criteria'}
+                </button>
+                <button
+                  type="button"
+                  disabled={statusUpdating}
+                  onClick={() => {
+                    if (window.confirm('Closing is permanent. Candidates will no longer be able to apply. Continue?')) {
+                      updateCriteriaStatus('closed');
+                    }
+                  }}
+                  className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-2 focus:outline-red-500"
+                >
+                  {statusUpdating ? 'Updating...' : 'Close Criteria'}
+                </button>
+              </>
+            )}
+            {criteriaStatus === 'paused' && (
+              <>
+                <button
+                  type="button"
+                  disabled={statusUpdating}
+                  onClick={() => updateCriteriaStatus('active')}
+                  className="rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-2 focus:outline-green-500"
+                >
+                  {statusUpdating ? 'Updating...' : 'Resume Criteria'}
+                </button>
+                <button
+                  type="button"
+                  disabled={statusUpdating}
+                  onClick={() => {
+                    if (window.confirm('Closing is permanent. Candidates will no longer be able to apply. Continue?')) {
+                      updateCriteriaStatus('closed');
+                    }
+                  }}
+                  className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-2 focus:outline-red-500"
+                >
+                  {statusUpdating ? 'Updating...' : 'Close Criteria'}
+                </button>
+              </>
+            )}
+            {criteriaStatus === 'closed' && (
+              <p className="text-sm text-gray-500">This criteria is permanently closed. No further changes can be made.</p>
+            )}
+          </div>
+
+          {/* Status descriptions */}
+          {criteriaStatus === 'paused' && (
+            <p className="text-sm text-amber-700 bg-amber-50 rounded px-3 py-2">
+              Paused criteria will not accept new assessments or tests. You can resume at any time.
+            </p>
+          )}
+
+          {/* Status error */}
+          {statusError && (
+            <p role="alert" className="text-sm text-red-600 bg-red-50 rounded px-3 py-2">
+              {statusError}
+            </p>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (

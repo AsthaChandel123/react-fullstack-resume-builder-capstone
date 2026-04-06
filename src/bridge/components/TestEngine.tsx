@@ -130,6 +130,15 @@ export function TestEngine({ criteriaCode }: Props) {
 
         const data = snap.data() as BridgeCriteria;
         if (!cancelled) {
+          if (data.status && data.status !== 'active') {
+            setError(
+              data.status === 'paused'
+                ? 'This test is temporarily paused by the employer. Check back later.'
+                : 'This position is closed and no longer accepting tests.',
+            );
+            setPhase('error');
+            return;
+          }
           setCriteria(data);
           criteriaRef.current = data;
           setPhase('calibration');

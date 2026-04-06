@@ -123,6 +123,25 @@ export function BridgeAssessment({ criteriaCode }: Props) {
     return null;
   }
 
+  // Blocked: criteria not active
+  if (criteria.status && criteria.status !== 'active') {
+    return (
+      <div
+        className="mx-auto max-w-2xl rounded-lg border border-gray-200 bg-gray-50 p-8 text-center"
+        role="alert"
+      >
+        <h2 className="mb-2 text-xl font-bold text-gray-900">
+          {criteria.status === 'paused' ? 'Assessments Paused' : 'Position Closed'}
+        </h2>
+        <p className="text-gray-700">
+          {criteria.status === 'paused'
+            ? 'The employer has temporarily paused assessments for this position. Check back later.'
+            : 'This position is no longer accepting applications.'}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
