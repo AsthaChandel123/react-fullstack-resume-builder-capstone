@@ -84,14 +84,14 @@ export function extractEntities(text: string): ExtractedEntities {
     }
   }
 
-  // GPA (try CGPA, then fraction, then percentage)
-  const cgpaMatch = text.match(CGPA_RE);
-  if (cgpaMatch) {
-    result.gpa = cgpaMatch[1];
+  // GPA (try fraction first to avoid CGPA regex eating the denominator, then CGPA, then percentage)
+  const fracMatch = text.match(GPA_FRACTION_RE);
+  if (fracMatch) {
+    result.gpa = `${fracMatch[1]}/${fracMatch[2]}`;
   } else {
-    const fracMatch = text.match(GPA_FRACTION_RE);
-    if (fracMatch) {
-      result.gpa = `${fracMatch[1]}/${fracMatch[2]}`;
+    const cgpaMatch = text.match(CGPA_RE);
+    if (cgpaMatch) {
+      result.gpa = cgpaMatch[1];
     } else {
       const pctMatch = text.match(PERCENTAGE_RE);
       if (pctMatch) {

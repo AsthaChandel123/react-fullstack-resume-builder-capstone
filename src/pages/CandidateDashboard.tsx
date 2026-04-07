@@ -124,8 +124,8 @@ export function CandidateDashboard() {
     for (const sec of skillSections) {
       for (const entry of sec.entries) {
         const items = entry.bullets?.length ?? 0;
-        const titleWords = entry.title?.split(/[,;|]/).length ?? 0;
-        skillCount += items + titleWords;
+        const fieldValues = Object.values(entry.fields).filter(Boolean).length;
+        skillCount += items + fieldValues;
       }
     }
     if (skillCount === 0) return 0;

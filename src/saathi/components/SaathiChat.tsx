@@ -1,6 +1,7 @@
 // /mnt/experiments/astha-resume/src/saathi/components/SaathiChat.tsx
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useResumeStore } from '@/store/resumeStore';
 import {
   createConversation,
@@ -13,6 +14,7 @@ import {
 import { slotsToResume } from '../engine/resumeGenerator';
 import { getResponse } from '../engine/responseBank';
 import { isSpeechSupported, createSpeechInput, type SpeechInput } from '../voice/speechInput';
+import { detectScript, getSpeechLang } from '../voice/languageDetect';
 import { ChatBubble } from './ChatBubble';
 import { VoiceButton } from './VoiceButton';
 import { SlotProgress, crossedMilestone } from './SlotProgress';
@@ -107,8 +109,8 @@ function CompletionCTA() {
         Your resume is ready!
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-        <a
-          href="/builder/preview"
+        <Link
+          to="/builder/preview"
           className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-5 py-2 text-sm font-medium text-white no-underline"
           style={{
             background: 'var(--saathi-accent-teal)',
@@ -116,9 +118,9 @@ function CompletionCTA() {
           }}
         >
           Preview Resume
-        </a>
-        <a
-          href="/builder/form"
+        </Link>
+        <Link
+          to="/builder/form"
           className="inline-flex min-h-[44px] items-center justify-center rounded-xl border px-5 py-2 text-sm font-medium no-underline"
           style={{
             borderColor: 'var(--saathi-accent-teal)',
@@ -127,9 +129,9 @@ function CompletionCTA() {
           }}
         >
           Edit in Form
-        </a>
-        <a
-          href="/builder/dashboard"
+        </Link>
+        <Link
+          to="/builder/dashboard"
           className="inline-flex min-h-[44px] items-center justify-center rounded-xl border px-5 py-2 text-sm font-medium no-underline"
           style={{
             borderColor: 'var(--saathi-accent-teal)',
@@ -138,7 +140,7 @@ function CompletionCTA() {
           }}
         >
           Career Health Check
-        </a>
+        </Link>
       </div>
       <style>{`
         @keyframes fade-in {
@@ -238,7 +240,7 @@ export function SaathiChat() {
         syncSlotsToStore(next.slots);
 
         // Inject encouragement when crossing a milestone threshold
-        const milestone = crossedMilestone(prev.filledPercentage, next.filledPercentage);
+        const milestone = crossedMilestone(prev.requiredFilledPercentage, next.requiredFilledPercentage);
         if (milestone) {
           const name = (next.slots.values.get('personal.name') as string) || '';
           const encouragementText = milestone === 100
@@ -292,7 +294,11 @@ export function SaathiChat() {
     }
 
     if (!speechRef.current) {
-      speechRef.current = createSpeechInput('en-IN');
+      // Detect language from any previous user input, default to en-IN
+      const lastUserMsg = conversation.messages.filter((m) => m.role === 'user').pop();
+      const detectedScript = lastUserMsg ? detectScript(lastUserMsg.text) : 'latin';
+      const speechLang = getSpeechLang(detectedScript);
+      speechRef.current = createSpeechInput(speechLang);
       if (!speechRef.current) return;
 
       speechRef.current.onResult = (transcript, isFinal) => {
@@ -315,9 +321,16 @@ export function SaathiChat() {
       };
     }
 
+    // Update language based on recent input
+    const recentMsg = conversation.messages.filter((m) => m.role === 'user').pop();
+    if (recentMsg) {
+      const script = detectScript(recentMsg.text);
+      speechRef.current.setLang(getSpeechLang(script));
+    }
+
     speechRef.current.start();
     setIsListening(true);
-  }, [isListening, applyInput, addSystemMessage]);
+  }, [isListening, applyInput, addSystemMessage, conversation.messages]);
 
   return (
     <div
@@ -331,7 +344,7 @@ export function SaathiChat() {
       <div className="flex items-center gap-2 p-4 pb-0">
         <div className="flex-1">
           <SlotProgress
-            filledPercentage={conversation.filledPercentage}
+            filledPercentage={conversation.requiredFilledPercentage}
             phase={conversation.slots.phase}
           />
         </div>

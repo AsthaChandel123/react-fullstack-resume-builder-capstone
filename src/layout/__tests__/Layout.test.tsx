@@ -80,12 +80,12 @@ describe('Layout with Navbar and Footer', () => {
 
   it('navigation has mode toggle and context links', () => {
     renderLayout();
-    // Mode toggle buttons
-    expect(screen.getByText('Student')).toBeInTheDocument();
-    expect(screen.getByText('Employer')).toBeInTheDocument();
+    // Mode toggle buttons (may appear in both desktop + mobile drawer)
+    expect(screen.getAllByText('Student').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Employer').length).toBeGreaterThan(0);
     // Default student mode shows builder link
-    expect(screen.getByText('Resume Builder')).toBeInTheDocument();
-    expect(screen.getByText('My Applications')).toBeInTheDocument();
+    expect(screen.getAllByText('Resume Builder').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('My Applications').length).toBeGreaterThan(0);
   });
 
   it('main content area has correct id', () => {

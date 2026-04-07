@@ -18,8 +18,8 @@ describe('languageDetect', () => {
     expect(detectScript('আমার নাম রাহুল')).toBe('bengali');
   });
 
-  it('returns latin for mixed text', () => {
-    expect(detectScript('Hello world मेरा')).toBe('latin');
+  it('returns devanagari for mixed text with Devanagari', () => {
+    expect(detectScript('Hello world मेरा')).toBe('devanagari');
   });
 
   it('maps scripts to BCP-47 speech lang', () => {

@@ -17,50 +17,42 @@ function renderLanding() {
 }
 
 describe('Landing page', () => {
-  it('renders hero heading', () => {
+  it('renders hero heading with Saathi', () => {
     renderLanding();
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(/Your Resume/)).toBeInTheDocument();
+    expect(screen.getByText(/Meet Saathi/)).toBeInTheDocument();
   });
 
-  it('renders "I\'m a Student" card', () => {
+  it('renders "Talk to Saathi" card', () => {
     renderLanding();
-    expect(screen.getByText("I'm a Student")).toBeInTheDocument();
+    expect(screen.getByText('Talk to Saathi')).toBeInTheDocument();
   });
 
   it('student card links to /builder', () => {
     renderLanding();
-    const studentCard = screen.getByText("I'm a Student").closest('a');
-    expect(studentCard).toHaveAttribute('href', '/builder');
-  });
-
-  it('renders "I\'m a Recruiter" card', () => {
-    renderLanding();
-    expect(screen.getByText("I'm a Recruiter")).toBeInTheDocument();
+    const card = screen.getByText('Start Talking').closest('a');
+    expect(card).toHaveAttribute('href', '/builder');
   });
 
   it('recruiter card links to /employer', () => {
     renderLanding();
-    const recruiterCard = screen.getByText("I'm a Recruiter").closest('a');
-    expect(recruiterCard).toHaveAttribute('href', '/employer');
+    const recruiterLink = screen.getAllByRole('link').find(
+      (el) => el.getAttribute('href') === '/employer',
+    );
+    expect(recruiterLink).toBeTruthy();
   });
 
   it('renders feature pills', () => {
     renderLanding();
-    expect(screen.getByText('100% Offline')).toBeInTheDocument();
-    expect(screen.getByText('In-Browser AI')).toBeInTheDocument();
-    expect(screen.getByText('WCAG 2.2 AAA')).toBeInTheDocument();
-    expect(screen.getByText('Research-Backed Scoring')).toBeInTheDocument();
-    expect(screen.getByText('Zero Server Cost')).toBeInTheDocument();
+    expect(screen.getByText('Conversational Resume Building')).toBeInTheDocument();
+    expect(screen.getByText('Voice Input in 11 Languages')).toBeInTheDocument();
+    expect(screen.getByText('Wellbeing Score for Every Job')).toBeInTheDocument();
+    expect(screen.getByText('Research-Backed Insights')).toBeInTheDocument();
+    expect(screen.getByText('Zero Data Leaves Your Device')).toBeInTheDocument();
   });
 
-  it('renders Start Building CTA', () => {
+  it('renders Start Talking CTA', () => {
     renderLanding();
-    expect(screen.getByText('Start Building')).toBeInTheDocument();
-  });
-
-  it('renders Analyze Candidates CTA', () => {
-    renderLanding();
-    expect(screen.getByText('Analyze Candidates')).toBeInTheDocument();
+    expect(screen.getByText('Start Talking')).toBeInTheDocument();
   });
 });
