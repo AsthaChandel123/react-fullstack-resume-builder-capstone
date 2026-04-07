@@ -401,8 +401,32 @@ export function SaathiChat() {
         minHeight: 'calc(100vh - 120px)',
       }}
     >
-      {/* Progress bar + Start Over */}
+      {/* AI model badge + Progress bar + Start Over */}
       <div className="flex items-center gap-2 p-4 pb-0">
+        <div
+          className="flex items-center gap-1 rounded-full px-2 py-0.5"
+          style={{
+            fontSize: '10px',
+            fontWeight: 500,
+            background: getGeminiApiKey()
+              ? 'rgba(99,102,241,0.15)'
+              : 'rgba(234,179,8,0.15)',
+            color: getGeminiApiKey()
+              ? '#818cf8'
+              : '#eab308',
+            whiteSpace: 'nowrap',
+          }}
+          title={getGeminiApiKey()
+            ? 'Gemini 2.5 Flash processes your messages for better understanding'
+            : 'Regex-only mode. Add VITE_GEMINI_API_KEY for AI understanding.'
+          }
+        >
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full"
+            style={{ background: getGeminiApiKey() ? '#818cf8' : '#eab308' }}
+          />
+          {getGeminiApiKey() ? 'Gemini AI' : 'Regex'}
+        </div>
         <div className="flex-1">
           <SlotProgress
             filledPercentage={conversation.requiredFilledPercentage}

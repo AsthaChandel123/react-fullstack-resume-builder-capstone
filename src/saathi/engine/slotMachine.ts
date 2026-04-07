@@ -353,10 +353,25 @@ function fillSlotsFromEntities(
   // Field of study extraction
   if (!slots.values.has('education[].field')) {
     const fieldMatch = rawText.match(
-      /(?:in|studying|studied|major(?:ing)? in)\s+(Computer Science|CS|Information Technology|IT|Electronics|Electrical|Mechanical|Civil|Chemical|Biotechnology|Data Science|Artificial Intelligence|AI|Machine Learning|Mathematics|Physics|Commerce|Business|Management|Arts|Design|Architecture)/i,
+      /(?:in|studying|studied|major(?:ing)? in|specializ(?:ation|ing) in)\s+(Computer Science(?: and Engineering)?|CSE|CS|Information Technology|IT|Electronics|Electrical|Mechanical|Civil|Chemical|Biotechnology|Data Science|Artificial Intelligence|AI|Machine Learning|Mathematics|Physics|Commerce|Business|Management|Arts|Design|Architecture|Cybersecurity|Cyber Security|Information Security|Network Security|Software Engineering)/i,
     );
     if (fieldMatch) {
       slots.values.set('education[].field', fieldMatch[1].trim());
+    } else {
+      // Fallback: "btech cse" pattern where field is embedded in degree shorthand
+      const degreeField = rawText.match(
+        /(?:b\.?tech|m\.?tech|b\.?e|m\.?e)\s+(cse|cs|it|ece|eee|me|ce|ai|ml|ds)\b/i,
+      );
+      if (degreeField) {
+        const SHORT_MAP: Record<string, string> = {
+          cse: 'Computer Science and Engineering', cs: 'Computer Science',
+          it: 'Information Technology', ece: 'Electronics and Communication',
+          eee: 'Electrical and Electronics', me: 'Mechanical Engineering',
+          ce: 'Civil Engineering', ai: 'Artificial Intelligence',
+          ml: 'Machine Learning', ds: 'Data Science',
+        };
+        slots.values.set('education[].field', SHORT_MAP[degreeField[1].toLowerCase()] || degreeField[1].toUpperCase());
+      }
     }
   }
 
@@ -465,11 +480,10 @@ function slotDoneOrSkipped(slots: SlotState, id: SlotId): boolean {
 function updatePhase(slots: SlotState): void {
   const nameSet = slots.values.has('personal.name');
   const locationSet = slots.values.has('personal.location');
-  const eduDone =
-    slotDoneOrSkipped(slots, 'education[].degree') &&
-    slotDoneOrSkipped(slots, 'education[].institution') &&
-    slotDoneOrSkipped(slots, 'education[].year') &&
-    slotDoneOrSkipped(slots, 'education[].field');
+  // Education is done when 3 of 4 core slots are filled (field is often embedded in degree)
+  const eduSlots = ['education[].degree', 'education[].institution', 'education[].year', 'education[].field'] as SlotId[];
+  const eduFilledCount = eduSlots.filter(s => slotDoneOrSkipped(slots, s)).length;
+  const eduDone = eduFilledCount >= 3;
   const emailSet = slots.values.has('personal.email');
   const phoneSet = slots.values.has('personal.phone');
 
