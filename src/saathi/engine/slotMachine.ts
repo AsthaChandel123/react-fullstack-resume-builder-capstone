@@ -282,17 +282,23 @@ function fillSlotsFromEntities(
   // Name extraction (Bug 5: case-insensitive, Hindi patterns, proper capitalization)
   if (!slots.values.has('personal.name')) {
     const nameMatch =
-      rawText.match(/(?:my name is|i'm|i am|call me|this is)\s+([a-z]+(?:\s[a-z]+){0,2})/i) ||
-      rawText.match(/(?:mera naam|main)\s+([a-z]+(?:\s[a-z]+){0,2})(?:\s+(?:hai|hoon|hu))?/i) ||
-      rawText.match(/^([a-z]+(?:\s[a-z]+){0,2})(?:\s+from\s|\s*$)/i);
+      rawText.match(/(?:my name is|i'm|i am|call me|this is)\s+([a-z]+(?:\s[a-z]+)?)\b/i) ||
+      rawText.match(/(?:mera naam|main)\s+([a-z]+(?:\s[a-z]+)?)(?:\s+(?:hai|hoon|hu))?/i) ||
+      rawText.match(/^([a-z]+(?:\s[a-z]+)?)(?:\s+from\s|\s*$)/i);
     if (nameMatch) {
-      const raw = nameMatch[1].trim();
+      // Strip trailing filler words that aren't part of a name
+      const FILLER = /\b(and|or|from|in|at|the|i|my|is|am|was|who|with|to|for)\b$/i;
+      let raw = nameMatch[1].trim();
+      raw = raw.replace(FILLER, '').trim();
       // Proper case: "rahul sharma" -> "Rahul Sharma"
       const properCased = raw
         .split(/\s+/)
+        .filter(Boolean)
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
-      slots.values.set('personal.name', properCased);
+      if (properCased.length > 0) {
+        slots.values.set('personal.name', properCased);
+      }
     }
   }
 
@@ -319,7 +325,7 @@ function fillSlotsFromEntities(
   if (!slots.values.has('education[].institution')) {
     // Quick match: known prefixes
     const instMatch = rawText.match(
-      /(?:from|at)\s+((?:IIT|NIT|IIIT|BITS|VIT|SRM|Amity|Shoolini|Delhi|Mumbai|Manipal|Jadavpur|Anna|Osmania|JNTU|Pune|Bangalore|Hyderabad|Chennai|Kolkata)\s*[A-Za-z\s]*)/i,
+      /(?:from|at)\s+((?:IIT|NIT|IIIT|BITS|VIT|SRM|Amity|Shoolini|Delhi|Mumbai|Manipal|Jadavpur|Anna|Osmania|JNTU|Pune|Bangalore|Hyderabad|Chennai|Kolkata)(?:\s+(?:University|College|Institute|School|Academy|of\s+Technology))?)/i,
     );
     if (instMatch) {
       slots.values.set('education[].institution', instMatch[1].trim());
@@ -365,7 +371,7 @@ function fillSlotsFromEntities(
   // Experience: company and role (Bug 1: support multiple entries)
   {
     const compMatch = rawText.match(
-      /(?:worked at|interned at|joined|working at|at)\s+([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)/i,
+      /(?:worked at|interned at|joined|working at|at)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)(?=\s+(?:as|for|from|since|in|where|doing)\b|\s*[.,]|\s*$)/i,
     );
     const roleMatch = rawText.match(
       /(?:as a|as an|role:?|position:?|worked as)\s+([A-Za-z\s]+?)(?:\s+at\s|\s*$|\.|,)/i,
