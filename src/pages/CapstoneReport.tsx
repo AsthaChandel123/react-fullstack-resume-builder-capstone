@@ -148,6 +148,55 @@ export function CapstoneReport() {
           background: #f0f0f0;
           font-weight: bold;
         }
+        /* ── Inline code: VS Code-inspired syntax coloring ── */
+        .report-page code {
+          font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+          font-size: 10pt;
+          background: #f8f8f8;
+          border: 1px solid #e0e0e0;
+          border-radius: 3px;
+          padding: 1pt 4pt;
+          color: #d73a49;
+          word-break: break-word;
+        }
+        @media print {
+          .report-page code {
+            background: #f5f5f5;
+            border-color: #ddd;
+          }
+        }
+        /* Function calls: blue like VS Code */
+        .report-page code.fn,
+        .report-page code[data-type="fn"] {
+          color: #795e26;
+        }
+        /* Types/interfaces: teal like VS Code */
+        .report-page code.type,
+        .report-page code[data-type="type"] {
+          color: #267f99;
+        }
+        /* File paths: green */
+        .report-page code.file,
+        .report-page code[data-type="file"] {
+          color: #098658;
+        }
+        /* String values: brown/orange */
+        .report-page code.str,
+        .report-page code[data-type="str"] {
+          color: #a31515;
+        }
+        /* Numbers/constants: dark blue */
+        .report-page code.num,
+        .report-page code[data-type="num"] {
+          color: #0000ff;
+        }
+        /* Keywords: purple */
+        .report-page code.kw,
+        .report-page code[data-type="kw"] {
+          color: #af00db;
+        }
+        /* Variable names: default dark red (already set in base code) */
+
         .report-page .table-caption,
         .report-page .figure-caption {
           text-align: center;
