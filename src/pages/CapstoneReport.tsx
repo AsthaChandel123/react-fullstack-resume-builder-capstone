@@ -21,7 +21,11 @@ export function CapstoneReport() {
           }
           .report-page:last-child { page-break-after: auto; }
           h1, h2, h3, h4, h5, h6 { page-break-after: avoid; break-after: avoid; }
-          table, figure, img { page-break-inside: avoid; break-inside: avoid; }
+          figure, img { page-break-inside: avoid; break-inside: avoid; }
+          table { page-break-inside: auto; break-inside: auto; }
+          table thead { display: table-header-group; }
+          table tr { page-break-inside: avoid; break-inside: avoid; }
+          .table-caption { page-break-before: avoid; break-before: avoid; }
           p { orphans: 3; widows: 3; }
         }
         @media screen {
@@ -130,6 +134,8 @@ export function CapstoneReport() {
           border-collapse: collapse;
           margin: 12pt 0;
           font-size: 11pt;
+          page-break-inside: auto;
+          break-inside: auto;
         }
         .report-page table th,
         .report-page table td {

@@ -120,7 +120,7 @@ export const chapterContent = `
 
   <p class="no-indent">Table 2.1 summarizes the identified research gaps and indicates how ResumeAI addresses each.</p>
 
-  <p class="table-caption">Table 2.1: Research Gap Analysis</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr>
@@ -167,6 +167,8 @@ export const chapterContent = `
       </tr>
     </tbody>
   </table>
+  <p class="table-caption">Table 2.1: Research Gap Analysis</p>
+  </div>
 </div>
 
 <!-- ===== CHAPTER 3: SYSTEM ANALYSIS AND DESIGN ===== -->
@@ -177,7 +179,7 @@ export const chapterContent = `
 
   <h4 class="subsection-title">3.1.1 Functional Requirements</h4>
 
-  <p class="table-caption">Table 3.1: Functional Requirements</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>ID</th><th>Requirement</th><th>Module</th></tr>
@@ -195,10 +197,12 @@ export const chapterContent = `
       <tr><td>FR-10</td><td>The system shall compute an 8-parameter wellbeing score for job opportunities across 31 Indian cities.</td><td>Wellbeing</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table 3.1: Functional Requirements</p>
+  </div>
 
   <h4 class="subsection-title">3.1.2 Non-Functional Requirements</h4>
 
-  <p class="table-caption">Table 3.2: Non-Functional Requirements</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>ID</th><th>Requirement</th><th>Category</th></tr>
@@ -212,6 +216,8 @@ export const chapterContent = `
       <tr><td>NFR-6</td><td>The test suite shall maintain a minimum of 500 automated tests covering unit, integration, security, and accessibility domains.</td><td>Quality</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table 3.2: Non-Functional Requirements</p>
+  </div>
 
   <h3 class="section-title">3.2 System Architecture Overview</h3>
 
@@ -220,6 +226,45 @@ export const chapterContent = `
   <p>The frontend is organized into five primary modules, each encapsulated in its own directory with dedicated state management, business logic, and UI components: (1) <code>src/saathi/</code> for the conversational engine, (2) <code>src/ai/</code> for the employer screening pipeline, (3) <code>src/bridge/</code> for the trust layer, (4) <code>src/wellbeing/</code> for the wellbeing engine, and (5) <code>src/builder/</code> for the form-based resume editor. Shared state is managed through Zustand stores (<code>src/store/</code>) with IndexedDB persistence via a custom adapter (<code>src/store/persist.ts</code>).</p>
 
   <p>The AI subsystem implements a 4-tier progressive architecture: L1 performs regex-based NLP with TF-IDF and Jaccard similarity (zero dependencies, instant execution); L2 computes semantic embeddings using E5-small-v2 via ONNX Runtime Web; L3 deploys Gemma 4 E2B through WebGPU for reasoning and contradiction detection; L4 falls back to the Gemini API when local inference is unavailable. Each tier builds on the previous, and the system degrades gracefully when higher tiers are inaccessible.</p>
+
+  <div class="diagram" style="margin: 16pt 0; padding: 12pt; border: 1px solid #ccc; background: #fafafa; page-break-inside: avoid;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6pt; font-size: 10pt; font-family: system-ui, sans-serif;">
+      <!-- Row 1: React SPA -->
+      <div style="padding: 6pt 18pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center; font-weight: bold;">React 19 SPA (TypeScript 5.8)</div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Row 2: Three stores -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 8pt; flex-wrap: wrap;">
+        <div style="padding: 6pt 12pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">resumeStore</div>
+        <div style="padding: 6pt 12pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">employerStore</div>
+        <div style="padding: 6pt 12pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">bridgeStore</div>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 24pt;">
+        <span style="font-size: 14pt;">&#8595;</span>
+        <span style="font-size: 14pt;">&#8595;</span>
+      </div>
+      <!-- Row 3: Persistence + Firebase -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 16pt; flex-wrap: wrap;">
+        <div style="padding: 6pt 12pt; border: 2px solid #4a7c59; border-radius: 4pt; background: #e8f3e8; text-align: center;">IndexedDB<br><span style="font-size: 9pt;">(Offline Persistence)</span></div>
+        <div style="padding: 6pt 12pt; border: 2px solid #c47a20; border-radius: 4pt; background: #f3ede8; text-align: center;">Firebase<br><span style="font-size: 9pt;">Auth + Firestore + Cloud Functions</span></div>
+      </div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Row 4: AI Pipeline -->
+      <div style="padding: 6pt 12pt; border: 2px solid #182B49; border-radius: 4pt; background: #dde4f0; text-align: center; font-weight: bold;">4-Tier AI Pipeline</div>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 6pt; flex-wrap: wrap;">
+        <div style="padding: 4pt 8pt; border: 1px solid #555; border-radius: 3pt; background: #f5f5f5; text-align: center; font-size: 9pt;">L1: Regex NLP</div>
+        <span style="font-size: 12pt;">&#8594;</span>
+        <div style="padding: 4pt 8pt; border: 1px solid #555; border-radius: 3pt; background: #f5f5f5; text-align: center; font-size: 9pt;">L2: ONNX Embed</div>
+        <span style="font-size: 12pt;">&#8594;</span>
+        <div style="padding: 4pt 8pt; border: 1px solid #555; border-radius: 3pt; background: #f5f5f5; text-align: center; font-size: 9pt;">L3: WebGPU LLM</div>
+        <span style="font-size: 12pt;">&#8594;</span>
+        <div style="padding: 4pt 8pt; border: 1px solid #555; border-radius: 3pt; background: #f5f5f5; text-align: center; font-size: 9pt;">L4: Gemini API</div>
+      </div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Row 5: PWA -->
+      <div style="padding: 6pt 18pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">PWA / Workbox Service Worker</div>
+    </div>
+    <p class="figure-caption">Figure 3.1: System Architecture Diagram</p>
+  </div>
 
   <h3 class="section-title">3.3 Saathi Conversational Engine Design</h3>
 
@@ -231,6 +276,26 @@ export const chapterContent = `
 
   <p>The response generation system maintains 220 templates organized across 24 response categories in <code>src/saathi/engine/responseBank.ts</code>. Templates support variable interpolation (name, location, degree, institution, year, field, company, role, skills_list, project) and rotate through variants using a round-robin <code>pickVariant()</code> function to avoid repetitive responses.</p>
 
+  <div class="diagram" style="margin: 16pt 0; padding: 12pt; border: 1px solid #ccc; background: #fafafa; page-break-inside: avoid;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 4pt; flex-wrap: wrap; font-size: 10pt; font-family: system-ui, sans-serif;">
+      <div style="padding: 6pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Warmup<br><span style="font-size: 8pt; color: #555;">3 slots</span></div>
+      <span style="font-size: 14pt;">&#8594;</span>
+      <div style="padding: 6pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Education<br><span style="font-size: 8pt; color: #555;">5 slots</span></div>
+      <span style="font-size: 14pt;">&#8594;</span>
+      <div style="padding: 6pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Experience<br><span style="font-size: 8pt; color: #555;">4 slots</span></div>
+      <span style="font-size: 14pt;">&#8594;</span>
+      <div style="padding: 6pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Projects<br><span style="font-size: 8pt; color: #555;">3 slots</span></div>
+      <span style="font-size: 14pt;">&#8594;</span>
+      <div style="padding: 6pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Skills<br><span style="font-size: 8pt; color: #555;">4 slots</span></div>
+      <span style="font-size: 14pt;">&#8594;</span>
+      <div style="padding: 6pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Wrapup<br><span style="font-size: 8pt; color: #555;">4 slots</span></div>
+      <span style="font-size: 14pt;">&#8594;</span>
+      <div style="padding: 6pt 8pt; border: 2px solid #4a7c59; border-radius: 4pt; background: #e8f3e8; text-align: center; font-weight: bold;">Review<br><span style="font-size: 8pt; color: #555;">Resume</span></div>
+    </div>
+    <p style="text-align: center; font-size: 9pt; margin: 6pt 0 0 0; color: #555; text-indent: 0;">23 total slots: 8 required + 15 preferred. Negation detection enables phase skipping.</p>
+    <p class="figure-caption">Figure 3.2: Saathi Conversation Flow (7 Phases)</p>
+  </div>
+
   <h3 class="section-title">3.4 AI Pipeline Design</h3>
 
   <p>The employer screening pipeline is implemented as a directed acyclic graph of 9 specialized agents, defined in <code>src/ai/orchestrator/agenticPipeline.ts</code>. The DAG executor in <code>src/ai/orchestrator/dagExecutor.ts</code> implements Kahn&rsquo;s topological sort algorithm for cycle detection and parallel execution scheduling.</p>
@@ -238,6 +303,39 @@ export const chapterContent = `
   <p>The pipeline DAG structure is as follows: JD Processor, L1 NLP, L2 Embed, and Distance agents have no blocking dependencies and execute concurrently at pipeline start. Skills Matcher depends on JD Processor and L1 NLP. L3 Reason depends on L1 NLP and L2 Embed. L4 Fallback depends on L3 Reason (runs only if L3 fails). Scorer depends on all preceding agents. Coach depends on Scorer and is optional.</p>
 
   <p>Each agent writes to a shared Blackboard data structure and logs decisions using the ReAct (Reasoning + Acting) trace pattern implemented in <code>src/ai/orchestrator/tracing.ts</code>. Each trace step records the agent&rsquo;s reasoning, the action taken, and the observation produced, enabling full transparency of the scoring decision chain.</p>
+
+  <div class="diagram" style="margin: 16pt 0; padding: 12pt; border: 1px solid #ccc; background: #fafafa; page-break-inside: avoid;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6pt; font-size: 10pt; font-family: system-ui, sans-serif;">
+      <!-- Tier 1: Parallel -->
+      <div style="font-size: 9pt; font-weight: bold; color: #555;">Tier 1 (parallel)</div>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 6pt; flex-wrap: wrap;">
+        <div style="padding: 5pt 10pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">JD Parser</div>
+        <div style="padding: 5pt 10pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">L1 NLP</div>
+        <div style="padding: 5pt 10pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">L2 Embed</div>
+        <div style="padding: 5pt 10pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Distance</div>
+      </div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Tier 2 -->
+      <div style="font-size: 9pt; font-weight: bold; color: #555;">Tier 2 (depends on Tier 1)</div>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 6pt; flex-wrap: wrap;">
+        <div style="padding: 5pt 10pt; border: 2px solid #182B49; border-radius: 4pt; background: #dde4f0; text-align: center;">Skills Matcher</div>
+        <div style="padding: 5pt 10pt; border: 2px solid #182B49; border-radius: 4pt; background: #dde4f0; text-align: center;">L3 Reason</div>
+      </div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Tier 3 -->
+      <div style="font-size: 9pt; font-weight: bold; color: #555;">Tier 3 (fallback)</div>
+      <div style="padding: 5pt 10pt; border: 2px dashed #c47a20; border-radius: 4pt; background: #f3ede8; text-align: center;">L4 Fallback <span style="font-size: 8pt;">(if L3 fails)</span></div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Tier 4 -->
+      <div style="font-size: 9pt; font-weight: bold; color: #555;">Tier 4</div>
+      <div style="padding: 5pt 10pt; border: 2px solid #4a7c59; border-radius: 4pt; background: #e8f3e8; text-align: center; font-weight: bold;">Scorer</div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Tier 5 -->
+      <div style="font-size: 9pt; font-weight: bold; color: #555;">Tier 5 (optional)</div>
+      <div style="padding: 5pt 10pt; border: 2px dashed #555; border-radius: 4pt; background: #f5f5f5; text-align: center;">Coach</div>
+    </div>
+    <p class="figure-caption">Figure 3.3: AI Pipeline DAG Structure</p>
+  </div>
 
   <p>The scoring formula, implemented in <code>src/ai/agents/ScoreAgent.ts</code>, computes a 9-parameter weighted composite: skills (30%, NACE 2024), experience (20%, NACE Internship Survey), education (15%, NACE 2024), projects (10%, AAC&amp;U/Hart 2018), certifications (5%, SHRM 2021), distance (5%, Marinescu &amp; Rathelot 2018), extracurricular (5%, Roulin &amp; Bangerter 2013), GPA (3%, NACE 2024), and completeness (2%, Ladders 2018). When distance data is unavailable, the 5% weight is redistributed proportionally across remaining parameters.</p>
 
@@ -250,6 +348,33 @@ export const chapterContent = `
   <p>Before testing, the candidate&rsquo;s resume is pinned: <code>createResumePin()</code> in <code>src/bridge/resumePin.ts</code> extracts resume text, normalizes it (lowercase, strip non-alphanumeric), computes a SHA-256 hash, and records the scoring state at test time. Post-test modification detection uses n-gram Jaccard similarity (<code>computeChangePct()</code>) to classify changes as same (&lt;10%), moderate (10&ndash;30%), or substantial (&gt;30%).</p>
 
   <p>The adaptive testing engine generates questions at 5 difficulty levels (Fundamentals, Applied, Architecture &amp; Edge Cases, Expert Tradeoffs, Novel Problem) with level multipliers (1.0, 1.5, 2.5, 4.0, 6.0) and score ceilings (L2: 45, L3: 75, L4: 90, L5: 100). Questions are validated through anti-LLM-tell constraints enforced by <code>validateQuestion()</code> in <code>src/bridge/test/questionGenerator.ts</code>.</p>
+
+  <div class="diagram" style="margin: 16pt 0; padding: 12pt; border: 1px solid #ccc; background: #fafafa; page-break-inside: avoid;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6pt; font-size: 10pt; font-family: system-ui, sans-serif;">
+      <!-- Row 1 -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 4pt; flex-wrap: wrap;">
+        <div style="padding: 5pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Publish<br>Criteria</div>
+        <span style="font-size: 14pt;">&#8594;</span>
+        <div style="padding: 5pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Share<br>Link</div>
+        <span style="font-size: 14pt;">&#8594;</span>
+        <div style="padding: 5pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Self-<br>Assess</div>
+        <span style="font-size: 14pt;">&#8594;</span>
+        <div style="padding: 5pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Calibrate</div>
+      </div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Row 2 -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 4pt; flex-wrap: wrap;">
+        <div style="padding: 5pt 8pt; border: 2px solid #c47a20; border-radius: 4pt; background: #f3ede8; text-align: center;">Test<br><span style="font-size: 8pt;">(Anti-Cheat)</span></div>
+        <span style="font-size: 14pt;">&#8594;</span>
+        <div style="padding: 5pt 8pt; border: 2px solid #4a7c59; border-radius: 4pt; background: #e8f3e8; text-align: center;">Sign<br>Scorecard</div>
+        <span style="font-size: 14pt;">&#8594;</span>
+        <div style="padding: 5pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Match<br>Signal</div>
+        <span style="font-size: 14pt;">&#8594;</span>
+        <div style="padding: 5pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #dde4f0; text-align: center;">Employer<br>Reply</div>
+      </div>
+    </div>
+    <p class="figure-caption">Figure 3.4: Bridge Trust Layer Flow</p>
+  </div>
 
   <h3 class="section-title">3.6 Wellbeing Scoring Engine Design</h3>
 
@@ -273,7 +398,7 @@ export const chapterContent = `
 
   <p>The Firestore database organizes data into the following collections:</p>
 
-  <p class="table-caption">Table 3.3: Firestore Collections</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>Collection</th><th>Document Structure</th><th>Purpose</th></tr>
@@ -285,6 +410,8 @@ export const chapterContent = `
       <tr><td><code>replies</code></td><td>EmployerReply (matchId, employerId, candidateId, message, sentAt)</td><td>Employer responses to match signals</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table 3.3: Firestore Collections</p>
+  </div>
 
   <p>Client-side persistence uses IndexedDB through a custom Zustand middleware adapter (<code>src/store/persist.ts</code>) for the resume store, employer store, and Bridge store. The Saathi conversation state is persisted to localStorage via <code>saveToStorage()</code> in <code>src/saathi/engine/slotMachine.ts</code> for rapid access during conversation flow.</p>
 </div>
@@ -293,7 +420,7 @@ export const chapterContent = `
 <div class="report-page">
   <h2 class="chapter-title">Chapter 4: Tools and Technologies</h2>
 
-  <p class="table-caption">Table 4.1: Tools and Technologies</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>Category</th><th>Tool / Library</th><th>Version</th><th>Purpose</th></tr>
@@ -321,6 +448,8 @@ export const chapterContent = `
       <tr><td>qrcode</td><td>1.5.4</td><td>QR code generation for scorecard sharing</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table 4.1: Tools and Technologies</p>
+  </div>
 
   <h3 class="section-title">4.1 Frontend Stack</h3>
 
@@ -467,7 +596,32 @@ export const chapterContent = `
 
   <p>The audio intelligence layer (<code>src/bridge/test/audioMonitor.ts</code>) implements three analysis tiers: (1) spectral analysis checking for formant energy concentration &gt;50% in the 300&ndash;3400 Hz speech band, (2) temporal analysis detecting syllabic modulation at 3&ndash;8 Hz via zero-crossing rate of the energy envelope, and (3) adaptive baseline recalibration using a 60-second rolling window of non-speech samples. Speech is declared when formants and syllabic modulation are both present and the RMS dB exceeds baseline by 3 dB. Impulses under 200ms are ignored (hammer/cough filter). Penalties: speech burst 2&ndash;5s (1 point), conversation (3+ bursts in 30s window, 5 points), continuous speech &gt;10s (8 points), whisper detection (6 points), speech coinciding with tab switch (12 points).</p>
 
-  <p class="table-caption">Table 5.2: Anti-Cheat Penalties</p>
+  <div class="diagram" style="margin: 16pt 0; padding: 12pt; border: 1px solid #ccc; background: #fafafa; page-break-inside: avoid;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6pt; font-size: 10pt; font-family: system-ui, sans-serif;">
+      <!-- Layer 1: Input sources -->
+      <div style="font-size: 9pt; font-weight: bold; color: #555;">Detection Sources</div>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 6pt; flex-wrap: wrap;">
+        <div style="padding: 5pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Browser Events<br><span style="font-size: 8pt; color: #555;">Tab / Paste / Fullscreen</span></div>
+        <div style="padding: 5pt 8pt; border: 2px solid #182B49; border-radius: 4pt; background: #e8edf3; text-align: center;">Speed Anomaly<br><span style="font-size: 8pt; color: #555;">Response Time Analysis</span></div>
+        <div style="padding: 5pt 8pt; border: 2px solid #c47a20; border-radius: 4pt; background: #f3ede8; text-align: center;">Audio Intelligence<br><span style="font-size: 8pt; color: #555;">3-Layer Pipeline</span></div>
+      </div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Audio sub-pipeline -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 4pt; flex-wrap: wrap;">
+        <div style="padding: 4pt 8pt; border: 1px solid #c47a20; border-radius: 3pt; background: #faf5ef; text-align: center; font-size: 9pt;">Spectral<br>(300-3400 Hz)</div>
+        <span style="font-size: 12pt;">&#8594;</span>
+        <div style="padding: 4pt 8pt; border: 1px solid #c47a20; border-radius: 3pt; background: #faf5ef; text-align: center; font-size: 9pt;">Temporal<br>(3-8 Hz syllabic)</div>
+        <span style="font-size: 12pt;">&#8594;</span>
+        <div style="padding: 4pt 8pt; border: 1px solid #c47a20; border-radius: 3pt; background: #faf5ef; text-align: center; font-size: 9pt;">Adaptive<br>(60s baseline)</div>
+      </div>
+      <span style="font-size: 14pt;">&#8595;</span>
+      <!-- Output -->
+      <div style="padding: 6pt 18pt; border: 2px solid #4a7c59; border-radius: 4pt; background: #e8f3e8; text-align: center; font-weight: bold;">Integrity Score (0-100)</div>
+    </div>
+    <p class="figure-caption">Figure 5.1: Anti-Cheat Architecture</p>
+  </div>
+
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>Flag Type</th><th>Penalty</th><th>Source</th></tr>
@@ -486,6 +640,8 @@ export const chapterContent = `
       <tr><td>Speech + tab switch</td><td>-12</td><td>Combined audio + browser event</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table 5.2: Anti-Cheat Penalties</p>
+  </div>
 
   <h4 class="subsection-title">5.4.5 Cryptographic Scorecard Signing</h4>
 
@@ -499,7 +655,7 @@ export const chapterContent = `
 
   <p>The wellbeing engine is implemented in <code>src/wellbeing/engine/wellbeingScorer.ts</code> with individual sub-score formulas in <code>src/wellbeing/engine/formulas.ts</code>. The engine accepts a <code>WellbeingInput</code> with commute minutes, work hours per week, work mode, offered salary, office city, candidate city, industry, commute mode, relocation flag, and optional driving distance.</p>
 
-  <p class="table-caption">Table 5.3: Wellbeing Scoring Parameters</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>Parameter</th><th>Weight</th><th>Formula Source</th><th>Data Source</th></tr>
@@ -515,6 +671,8 @@ export const chapterContent = `
       <tr><td>Commute Cost</td><td>5%</td><td>100 - (cost/salary)% &times; 10. ORF India</td><td>Transit costs + fuel rates</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table 5.3: Wellbeing Scoring Parameters</p>
+  </div>
 
   <p>City-specific data is stored in three lookup tables: <code>src/wellbeing/data/cityCoL.ts</code> (cost-of-living indices for 35 city entries from Numbeo India 2025), <code>src/wellbeing/data/cityAQI.ts</code> (annual PM2.5 values from CPCB 2025), and <code>src/wellbeing/data/cityWBGT.ts</code> (peak summer WBGT from IMD 2025). Each lookup function normalizes city names and falls back to a moderate default when the city is not found.</p>
 
@@ -603,7 +761,7 @@ export const chapterContent = `
 
   <h3 class="section-title">6.8 Test Results Summary</h3>
 
-  <p class="table-caption">Table 6.1: Test Results by Module</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>Module</th><th>Test Files</th><th>Tests</th><th>Status</th></tr>
@@ -620,6 +778,8 @@ export const chapterContent = `
       <tr><td><strong>Total</strong></td><td><strong>27</strong></td><td><strong>516</strong></td><td><strong>Pass</strong></td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table 6.1: Test Results by Module</p>
+  </div>
 </div>
 
 <!-- ===== CHAPTER 7: CHALLENGES AND SOLUTIONS ===== -->
@@ -769,7 +929,7 @@ export const chapterContent = `
 <div class="report-page">
   <h2 class="chapter-title">Appendix B: Scoring Formulas and Research Citations</h2>
 
-  <p class="table-caption">Table B.1: Candidate Scoring Formulas</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>Parameter</th><th>Weight</th><th>Formula</th><th>Citation</th></tr>
@@ -786,10 +946,12 @@ export const chapterContent = `
       <tr><td>Completeness</td><td>2%</td><td>count(present_sections) / count(expected_sections)</td><td>Ladders Eye-Tracking 2018</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table B.1: Candidate Scoring Formulas</p>
+  </div>
 
   <p class="no-indent" style="margin-top: 12pt;"><strong>Composite:</strong> base_score = &Sigma;(w<sub>i</sub> &times; s<sub>i</sub>) &times; 100. Red flag penalties: fabrication=-20, embellishment=-10, omission=-5 (Henle et al. 2019). Final = clamp(base + penalty, 0, 100). Parseability hard gate: &lt;75% sections identified &rarr; score=0.</p>
 
-  <p class="table-caption" style="margin-top: 24pt;">Table B.2: Wellbeing Scoring Formulas</p>
+  <div style="page-break-inside: auto; margin-top: 24pt;">
   <table>
     <thead>
       <tr><th>Parameter</th><th>Weight</th><th>Formula</th><th>Citation</th></tr>
@@ -805,6 +967,8 @@ export const chapterContent = `
       <tr><td>Commute Cost</td><td>5%</td><td>max(0, 100 - (monthly_cost / monthly_salary) &times; 1000)</td><td>ORF India commute economics</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table B.2: Wellbeing Scoring Formulas</p>
+  </div>
 
   <p class="no-indent" style="margin-top: 12pt;"><strong>Composite:</strong> &Sigma;(w<sub>i</sub> &times; s<sub>i</sub>), relocation penalty = -10. Classification: thriving (&ge;80), comfortable (60&ndash;79), strained (40&ndash;59), at-risk (20&ndash;39), concerning (&lt;20).</p>
 </div>
@@ -815,7 +979,7 @@ export const chapterContent = `
 
   <p>The skills taxonomy defined in <code>src/ai/taxonomy/skillsGraph.ts</code> contains 186 skill nodes organized into 10 categories. Each node includes a canonical ID, display name, aliases for normalization, and adjacent skills for proximity matching. The taxonomy is inspired by ESCO (European Skills/Competences), O*NET (US Occupational Information Network), and LinkedIn Skills Graph, tuned for Indian fresher and tech hiring contexts.</p>
 
-  <p class="table-caption">Table C.1: Skills Taxonomy by Category</p>
+  <div style="page-break-inside: auto;">
   <table>
     <thead>
       <tr><th>Category</th><th>Count</th><th>Examples</th></tr>
@@ -833,6 +997,8 @@ export const chapterContent = `
       <tr><td>Domain</td><td>14</td><td>Machine Learning, Deep Learning, NLP, Computer Vision, Data Science, Cybersecurity, Blockchain, IoT, Cloud Architecture, DevSecOps, MLOps</td></tr>
     </tbody>
   </table>
+  <p class="table-caption">Table C.1: Skills Taxonomy by Category</p>
+  </div>
 
   <p>All lookups are O(1) via pre-built <code>Map</code> data structures. The <code>normalizeSkill()</code> function maps aliases to canonical IDs (e.g., &ldquo;JS&rdquo; &rarr; &ldquo;javascript&rdquo;, &ldquo;k8s&rdquo; &rarr; &ldquo;kubernetes&rdquo;, &ldquo;ML&rdquo; &rarr; &ldquo;machine-learning&rdquo;). The <code>computeSkillOverlap()</code> function produces exact matches (weight 1.0) and adjacent matches (weight 0.5) to compute a composite skill alignment score.</p>
 </div>
