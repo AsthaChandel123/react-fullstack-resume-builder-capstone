@@ -11,6 +11,7 @@ export function PitchNav({ children }: PitchNavProps) {
   const [navVisible, setNavVisible] = useState(true);
   const [showHint, setShowHint] = useState(true);
   const [showOverview, setShowOverview] = useState(false);
+  const [needsFullscreen, setNeedsFullscreen] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -63,11 +64,21 @@ export function PitchNav({ children }: PitchNavProps) {
 
   useEffect(() => {
     function onFsChange() {
-      setIsFullscreen(!!document.fullscreenElement);
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (fs) setNeedsFullscreen(false);
     }
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
+
+  const handleFirstClick = useCallback(() => {
+    if (needsFullscreen && !document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch(() => {
+        setNeedsFullscreen(false);
+      });
+    }
+  }, [needsFullscreen]);
 
   // Touch/swipe support
   const onTouchStart = useCallback((e: React.TouchEvent) => {
@@ -131,6 +142,26 @@ export function PitchNav({ children }: PitchNavProps) {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
+      {/* Fullscreen prompt overlay -- dismissed after first click/tap */}
+      {needsFullscreen && (
+        <div
+          onClick={handleFirstClick}
+          onTouchEnd={handleFirstClick}
+          className="absolute inset-0 z-[100] flex cursor-pointer items-center justify-center print:hidden"
+          style={{ backgroundColor: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(4px)' }}
+          role="button"
+          aria-label="Tap to enter fullscreen"
+        >
+          <div className="text-center text-white">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-3" aria-hidden="true">
+              <path d="M4 4h4M4 4v4M20 4h-4M20 4v4M4 20h4M4 20v-4M20 20h-4M20 20v-4" />
+            </svg>
+            <p style={{ fontSize: '18px', fontWeight: 600 }}>Tap anywhere to start</p>
+            <p style={{ fontSize: '13px', opacity: 0.7, marginTop: '4px' }}>Enters fullscreen for best experience</p>
+          </div>
+        </div>
+      )}
+
       {/* Shoolini logo top-left */}
       <div className="pointer-events-none absolute left-4 top-3 z-40 print:hidden">
         <img
