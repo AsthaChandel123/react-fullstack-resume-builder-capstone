@@ -587,7 +587,27 @@ export const chapterContent = `
 
   <p class="no-indent"><strong>base_score = &Sigma;(weight<sub>i</sub> &times; score<sub>i</sub>) &times; 100</strong></p>
 
-  <p>Individual parameter computations include: skills score as 0.4 &times; L1_exact (Jaccard) + 0.6 &times; L2_semantic (cosine similarity); experience score as has_experience &times; relevance (L2 semantic proxy); education score via CIP-SOC crosswalk keywords; project score via AAC&amp;U VALUE rubric classification (capstone: 1.0, milestone3: 0.75, milestone2: 0.5, benchmark: 0.25) implemented in <code data-type="file">src/ai/scoring/valueRubric.ts</code>; distance score as exp(-0.043 &times; miles) per Marinescu &amp; Rathelot (2018) in <code data-type="file">src/ai/scoring/distanceDecay.ts</code>; GPA score as linear scale (GPA - 2.0) / 2.0 with null yielding 0.5 neutral in <code data-type="file">src/ai/scoring/gpaScore.ts</code>; and extracurricular score as 0.6 &times; has_extra + 0.4 &times; has_leadership.</p>
+  <p class="no-indent">Table 5.1 summarizes the 9 scoring parameters with their weights, computation methods, and research citations.</p>
+
+  <div style="page-break-inside: auto;">
+  <table>
+    <thead>
+      <tr><th>Parameter</th><th>Weight</th><th>Computation</th><th>Citation</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Skills Match</td><td>30%</td><td>0.4 &times; Jaccard(exact) + 0.6 &times; cosine(TF-IDF semantic)</td><td>NACE 2024</td></tr>
+      <tr><td>Experience</td><td>20%</td><td>has_experience &times; semantic relevance (L2 proxy)</td><td>NACE Internship Survey 2024</td></tr>
+      <tr><td>Education</td><td>15%</td><td>CIP-SOC crosswalk keyword overlap</td><td>NACE 2024</td></tr>
+      <tr><td>Projects</td><td>10%</td><td>avg(VALUE rubric): capstone=1.0, milestone3=0.75, milestone2=0.5, benchmark=0.25</td><td>AAC&amp;U/Hart 2018</td></tr>
+      <tr><td>Certifications</td><td>5%</td><td>has_certs &times; semantic relevance</td><td>SHRM 2021</td></tr>
+      <tr><td>Distance</td><td>5%</td><td>exp(-0.043 &times; miles)</td><td>Marinescu &amp; Rathelot 2018</td></tr>
+      <tr><td>Extracurricular</td><td>5%</td><td>0.6 &times; has_extra + 0.4 &times; has_leadership</td><td>Roulin &amp; Bangerter 2013</td></tr>
+      <tr><td>GPA</td><td>3%</td><td>(GPA - 2.0) / 2.0; null = 0.5 neutral</td><td>NACE 2024</td></tr>
+      <tr><td>Completeness</td><td>2%</td><td>present_sections / expected_sections</td><td>Ladders 2018</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-caption">Table 5.1: Candidate Scoring Parameters</p>
+  </div>
 
   <p>Red flag penalties are applied per Henle et al. (2019): fabrication (-20), embellishment (-10), omission (-5). The final score is clamped to [0, 100], with a hard parseability gate: if the L1 agent cannot identify at least 75% of expected sections (contact, education, experience/projects, skills), the score is set to zero.</p>
 
@@ -650,7 +670,7 @@ export const chapterContent = `
       <!-- Output -->
       <div style="padding: 6pt 18pt; border: 2px solid #4a7c59; border-radius: 4pt; background: #e8f3e8; text-align: center; font-weight: bold;">Integrity Score (0-100)</div>
     </div>
-    <p class="figure-caption">Figure 5.1: Anti-Cheat Architecture</p>
+    <p class="figure-caption">Figure 5.4: Anti-Cheat Audio Analysis Pipeline</p>
   </div>
 
   <div style="page-break-inside: auto;">

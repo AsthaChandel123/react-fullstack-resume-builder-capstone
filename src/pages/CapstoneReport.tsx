@@ -391,6 +391,7 @@ export function CapstoneReport() {
           <div className="toc-entry section"><span>3.9 Database Schema</span><span className="toc-dots"></span><span>29</span></div>
 
           <div className="toc-entry chapter"><span>Chapter 4: Tools and Technologies</span><span className="toc-dots"></span><span>31</span></div>
+          <div className="toc-entry section"><span>4.0 Technology Evolution from Original Proposal</span><span className="toc-dots"></span><span>31</span></div>
           <div className="toc-entry section"><span>4.1 Frontend Stack</span><span className="toc-dots"></span><span>31</span></div>
           <div className="toc-entry section"><span>4.2 State Management</span><span className="toc-dots"></span><span>32</span></div>
           <div className="toc-entry section"><span>4.3 AI/ML Models</span><span className="toc-dots"></span><span>33</span></div>
@@ -460,6 +461,7 @@ export function CapstoneReport() {
           <div className="toc-entry"><span>Table 3.1: Functional Requirements</span><span className="toc-dots"></span><span>18</span></div>
           <div className="toc-entry"><span>Table 3.2: Non-Functional Requirements</span><span className="toc-dots"></span><span>19</span></div>
           <div className="toc-entry"><span>Table 3.3: Firestore Collections</span><span className="toc-dots"></span><span>30</span></div>
+          <div className="toc-entry"><span>Table 4.0: Technology Evolution from Original Proposal</span><span className="toc-dots"></span><span>31</span></div>
           <div className="toc-entry"><span>Table 4.1: Tools and Technologies</span><span className="toc-dots"></span><span>31</span></div>
           <div className="toc-entry"><span>Table 5.1: Candidate Scoring Parameters</span><span className="toc-dots"></span><span>47</span></div>
           <div className="toc-entry"><span>Table 5.2: Anti-Cheat Penalties</span><span className="toc-dots"></span><span>51</span></div>
