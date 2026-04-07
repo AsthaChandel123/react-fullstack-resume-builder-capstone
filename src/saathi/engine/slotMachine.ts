@@ -15,6 +15,8 @@ import {
 } from './slots';
 import { extractEntities, type ExtractedEntities } from './entityExtractor';
 import { getGreeting, getResponse, type ResponseKey } from './responseBank';
+import { extractWithAI, getGeminiApiKey, type AIExtractedData } from './aiExtractor';
+import { generateSaathiResponse } from './aiResponseGenerator';
 
 const STORAGE_KEY = 'saathi_conversation';
 
@@ -583,4 +585,234 @@ function phaseToAskKey(phase: ConversationPhase, slots: SlotState): ResponseKey 
     case 'review':
       return 'review.show';
   }
+}
+
+// ── AI-powered async processing ───────────────────────────────────────
+
+/**
+ * Build conversation context string from recent messages (last 4 exchanges).
+ */
+function buildConversationContext(messages: ChatMessage[]): string {
+  const recent = messages.slice(-8); // last 4 exchanges (user + saathi pairs)
+  return recent
+    .map((m) => `${m.role === 'user' ? 'User' : 'Saathi'}: ${m.text}`)
+    .join('\n');
+}
+
+/**
+ * Get lists of filled and missing slot labels for the AI response generator.
+ */
+function getSlotStatus(slots: SlotState): { filled: string[]; missing: string[] } {
+  const filled: string[] = [];
+  const missing: string[] = [];
+
+  for (const slot of ALL_SLOTS) {
+    if (slots.values.has(slot.id) || slots.skippedSlots.has(slot.id)) {
+      filled.push(slot.label);
+    } else {
+      missing.push(slot.label);
+    }
+  }
+
+  return { filled, missing };
+}
+
+/**
+ * Fill slots from AI-extracted data. Maps AIExtractedData fields to slot IDs.
+ */
+function fillSlotsFromAI(slots: SlotState, data: AIExtractedData): void {
+  if (data.name && !slots.values.has('personal.name')) {
+    // Proper case
+    const properCased = data.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+    if (properCased.length > 0) {
+      slots.values.set('personal.name', properCased);
+    }
+  }
+
+  if (data.email && !slots.values.has('personal.email')) {
+    slots.values.set('personal.email', data.email);
+  }
+
+  if (data.phone && !slots.values.has('personal.phone')) {
+    slots.values.set('personal.phone', data.phone);
+  }
+
+  if (data.location && !slots.values.has('personal.location')) {
+    slots.values.set('personal.location', data.location);
+  }
+
+  if (data.targetRole && !slots.values.has('target_role')) {
+    slots.values.set('target_role', data.targetRole);
+  }
+
+  if (data.degree && !slots.values.has('education[].degree')) {
+    slots.values.set('education[].degree', data.degree);
+  }
+
+  if (data.institution && !slots.values.has('education[].institution')) {
+    slots.values.set('education[].institution', data.institution);
+  }
+
+  if (data.year && !slots.values.has('education[].year')) {
+    slots.values.set('education[].year', data.year);
+  }
+
+  if (data.field && !slots.values.has('education[].field')) {
+    slots.values.set('education[].field', data.field);
+  }
+
+  if (data.gpa && !slots.values.has('education[].gpa')) {
+    slots.values.set('education[].gpa', data.gpa);
+  }
+
+  if (data.linkedin && !slots.values.has('personal.linkedin')) {
+    slots.values.set('personal.linkedin', data.linkedin);
+  }
+
+  if (data.github && !slots.values.has('personal.github')) {
+    slots.values.set('personal.github', data.github);
+  }
+
+  // Experience
+  if (data.company || data.role) {
+    const company = data.company || '';
+    const role = data.role || '';
+    const dates = data.dates || '';
+
+    if (!slots.values.has('experience[].company')) {
+      if (company) slots.values.set('experience[].company', company);
+      if (role) slots.values.set('experience[].role', role);
+      if (dates) slots.values.set('experience[].dates', dates);
+    } else {
+      commitCurrentExperienceToArray(slots);
+    }
+
+    const fields: Record<string, string> = {};
+    if (company) fields.company = company;
+    if (role) fields.role = role;
+    if (dates) fields.dates = dates;
+    addArrayEntry(slots, 'experience', fields);
+  }
+
+  if (data.bullets && data.bullets.length > 0) {
+    const existing = slots.values.get('experience[].bullets[]');
+    const prev = Array.isArray(existing) ? [...existing] : [];
+    slots.values.set('experience[].bullets[]', [...prev, ...data.bullets]);
+  }
+
+  // Skills (accumulate)
+  if (data.skills && data.skills.length > 0) {
+    const existing = slots.values.get('skills[]');
+    const prev = Array.isArray(existing) ? existing : [];
+    const merged = [...new Set([...prev, ...data.skills])];
+    slots.values.set('skills[]', merged);
+  }
+}
+
+/**
+ * Async version of processUserInput using Gemini 2.5 Flash for
+ * natural language understanding and response generation.
+ *
+ * Falls back to sync processUserInput when API key is missing or calls fail.
+ */
+export async function processUserInputAsync(
+  state: ConversationState,
+  input: string,
+): Promise<ConversationState> {
+  const apiKey = getGeminiApiKey();
+
+  // No API key: fall back to sync
+  if (!apiKey) {
+    return processUserInput(state, input);
+  }
+
+  // Input validation
+  const sanitized = input.slice(0, 2000).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
+  const trimmed = sanitized.trim();
+
+  const userMsg: ChatMessage = {
+    id: msgId(),
+    role: 'user',
+    text: trimmed,
+    timestamp: Date.now(),
+  };
+
+  if (!trimmed) {
+    const clarification: ChatMessage = {
+      id: msgId(),
+      role: 'saathi',
+      text: getResponse('clarification', {}),
+      timestamp: Date.now(),
+    };
+    return {
+      ...state,
+      messages: [...state.messages, userMsg, clarification],
+    };
+  }
+
+  const newSlots: SlotState = {
+    values: new Map(state.slots.values),
+    phase: state.slots.phase,
+    arrayIndices: new Map(state.slots.arrayIndices),
+    skippedSlots: new Set(state.slots.skippedSlots),
+  };
+
+  // AI extraction
+  const conversationContext = buildConversationContext(state.messages);
+  const aiData = await extractWithAI(trimmed, conversationContext, newSlots.phase, apiKey);
+
+  // Handle negation: skip current phase
+  if (aiData.isNegation) {
+    const currentPhase = newSlots.phase;
+    const skippablePhases: ConversationPhase[] = ['experience', 'projects', 'skills'];
+    if (skippablePhases.includes(currentPhase)) {
+      skipPhaseSlots(newSlots, currentPhase);
+      updatePhase(newSlots);
+    }
+  }
+
+  // Fill slots from AI-extracted data (even partial)
+  fillSlotsFromAI(newSlots, aiData);
+
+  // Update phase based on what's filled
+  updatePhase(newSlots);
+
+  // Build slot status for response generation
+  const { filled, missing } = getSlotStatus(newSlots);
+  const userName = (newSlots.values.get('personal.name') as string) || '';
+
+  // Generate AI response
+  const responseText = await generateSaathiResponse(
+    aiData,
+    newSlots.phase,
+    filled,
+    missing,
+    userName,
+    apiKey,
+  );
+
+  const responseMsg: ChatMessage = {
+    id: msgId(),
+    role: 'saathi',
+    text: responseText,
+    timestamp: Date.now(),
+  };
+
+  const filledPct = getFilledPercentage(newSlots);
+  const reqPct = getRequiredFilledPercentage(newSlots);
+
+  const result: ConversationState = {
+    messages: [...state.messages, userMsg, responseMsg],
+    slots: newSlots,
+    filledPercentage: filledPct,
+    requiredFilledPercentage: reqPct,
+    isComplete: reqPct === 100,
+  };
+
+  saveToStorage(result);
+  return result;
 }

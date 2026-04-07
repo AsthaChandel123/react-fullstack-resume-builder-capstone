@@ -120,10 +120,11 @@ export async function generate(
   pipe: TextGenerationPipeline,
   prompt: string,
   maxTokens = 2048,
+  systemPrompt = 'You are an expert ATS resume analyst. Respond only in valid JSON. Be precise and concise.',
 ): Promise<string> {
-  const fullPrompt = `<start_of_turn>user
-You are an expert ATS resume analyst. Respond only in valid JSON. Be precise and concise.
-
+  const fullPrompt = `<start_of_turn>system
+${systemPrompt}<end_of_turn>
+<start_of_turn>user
 ${prompt}<end_of_turn>
 <start_of_turn>model
 `;

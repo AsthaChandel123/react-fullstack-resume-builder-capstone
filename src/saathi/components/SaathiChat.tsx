@@ -6,11 +6,13 @@ import { useResumeStore } from '@/store/resumeStore';
 import {
   createConversation,
   processUserInput,
+  processUserInputAsync,
   loadFromStorage,
   clearStorage,
   type ConversationState,
   type ChatMessage,
 } from '../engine/slotMachine';
+import { getGeminiApiKey } from '../engine/aiExtractor';
 import { slotsToResume } from '../engine/resumeGenerator';
 import { getResponse } from '../engine/responseBank';
 import { isSpeechSupported, createSpeechInput, type SpeechInput } from '../voice/speechInput';
@@ -44,7 +46,7 @@ function systemMsgId(): string {
   return `sys-${++_systemMsgCounter}-${Date.now()}`;
 }
 
-function TypingIndicator() {
+function TypingIndicator({ thinking = false }: { thinking?: boolean }) {
   return (
     <div className="mb-3 flex justify-start" role="listitem" aria-hidden="true">
       <div
@@ -58,7 +60,7 @@ function TypingIndicator() {
           className="text-xs font-semibold"
           style={{ color: 'var(--saathi-accent-teal)' }}
         >
-          Saathi is typing
+          {thinking ? 'Saathi is thinking' : 'Saathi is typing'}
         </span>
         <span className="saathi-typing-dots" aria-hidden="true">
           <span className="saathi-dot" />
@@ -162,6 +164,7 @@ export function SaathiChat() {
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(() => !!loadFromStorage());
   const [displayedMessages, setDisplayedMessages] = useState<ChatMessage[]>(
     () => {
@@ -201,7 +204,7 @@ export function SaathiChat() {
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [displayedMessages.length, isTyping]);
+  }, [displayedMessages.length, isTyping, isThinking]);
 
   // When conversation messages change, show typing indicator then reveal new messages
   useEffect(() => {
@@ -231,47 +234,105 @@ export function SaathiChat() {
   }, [conversation.messages, displayedMessages.length]);
 
   const applyInput = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
 
-      setConversation((prev) => {
-        const next = processUserInput(prev, trimmed);
-        syncSlotsToStore(next.slots);
-
-        // Inject encouragement when crossing a milestone threshold
-        const milestone = crossedMilestone(prev.requiredFilledPercentage, next.requiredFilledPercentage);
-        if (milestone) {
-          const name = (next.slots.values.get('personal.name') as string) || '';
-          const encouragementText = milestone === 100
-            ? '\uD83C\uDF89 You did it! Your resume is complete!'
-            : getResponse('encouragement', { name });
-
-          const encouragementMsg: ChatMessage = {
-            id: systemMsgId(),
-            role: 'saathi',
-            text: encouragementText,
-            timestamp: Date.now(),
-          };
-
-          return {
-            ...next,
-            messages: [...next.messages, encouragementMsg],
-          };
-        }
-
-        return next;
-      });
       setInputValue('');
+
+      const apiKey = getGeminiApiKey();
+      const useAI = !!apiKey;
+
+      if (useAI) {
+        // Async AI path: show thinking indicator, await result
+        setIsThinking(true);
+
+        // Add user message to display immediately
+        const userMsg: ChatMessage = {
+          id: `msg-pending-${Date.now()}`,
+          role: 'user',
+          text: trimmed,
+          timestamp: Date.now(),
+        };
+        setDisplayedMessages((prev) => [...prev, userMsg]);
+
+        try {
+          const prev = conversation;
+          const next = await processUserInputAsync(prev, trimmed);
+          syncSlotsToStore(next.slots);
+
+          // Inject encouragement when crossing a milestone threshold
+          const milestone = crossedMilestone(prev.requiredFilledPercentage, next.requiredFilledPercentage);
+          if (milestone) {
+            const name = (next.slots.values.get('personal.name') as string) || '';
+            const encouragementText = milestone === 100
+              ? '\uD83C\uDF89 You did it! Your resume is complete!'
+              : getResponse('encouragement', { name });
+
+            const encouragementMsg: ChatMessage = {
+              id: systemMsgId(),
+              role: 'saathi',
+              text: encouragementText,
+              timestamp: Date.now(),
+            };
+
+            const withEncouragement = {
+              ...next,
+              messages: [...next.messages, encouragementMsg],
+            };
+            setConversation(withEncouragement);
+          } else {
+            setConversation(next);
+          }
+        } catch {
+          // AI failed, fall back to sync
+          setConversation((prev) => {
+            const next = processUserInput(prev, trimmed);
+            syncSlotsToStore(next.slots);
+            return next;
+          });
+        } finally {
+          setIsThinking(false);
+        }
+      } else {
+        // Sync regex path (no API key)
+        setConversation((prev) => {
+          const next = processUserInput(prev, trimmed);
+          syncSlotsToStore(next.slots);
+
+          const milestone = crossedMilestone(prev.requiredFilledPercentage, next.requiredFilledPercentage);
+          if (milestone) {
+            const name = (next.slots.values.get('personal.name') as string) || '';
+            const encouragementText = milestone === 100
+              ? '\uD83C\uDF89 You did it! Your resume is complete!'
+              : getResponse('encouragement', { name });
+
+            const encouragementMsg: ChatMessage = {
+              id: systemMsgId(),
+              role: 'saathi',
+              text: encouragementText,
+              timestamp: Date.now(),
+            };
+
+            return {
+              ...next,
+              messages: [...next.messages, encouragementMsg],
+            };
+          }
+
+          return next;
+        });
+      }
+
       inputRef.current?.focus();
     },
-    [],
+    [conversation],
   );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      applyInput(inputValue);
+      void applyInput(inputValue);
     },
     [inputValue, applyInput],
   );
@@ -304,7 +365,7 @@ export function SaathiChat() {
       speechRef.current.onResult = (transcript, isFinal) => {
         setInputValue(transcript);
         if (isFinal) {
-          applyInput(transcript);
+          void applyInput(transcript);
           setIsListening(false);
         }
       };
@@ -374,8 +435,9 @@ export function SaathiChat() {
         {displayedMessages.map((msg) => (
           <ChatBubble key={msg.id} message={msg} />
         ))}
-        {isTyping && <TypingIndicator />}
-        {conversation.isComplete && !isTyping && <CompletionCTA />}
+        {isThinking && <TypingIndicator thinking />}
+        {isTyping && !isThinking && <TypingIndicator />}
+        {conversation.isComplete && !isTyping && !isThinking && <CompletionCTA />}
         <div ref={messagesEndRef} />
       </div>
 
