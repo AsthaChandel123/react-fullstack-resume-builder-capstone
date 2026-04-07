@@ -2,24 +2,24 @@ const sections = [
   {
     title: 'Saathi Conversation Engine',
     items: [
-      'Slot-filling state machine (24 slots, 5 phases)',
-      '220+ response templates, warm and natural',
+      'Slot-filling state machine (23 slots, 7 phases)',
+      '241 response templates, warm and natural',
       'DistilBERT-NER entity extraction + regex fallback',
       'Voice input: 10 Indian languages via Web Speech API',
     ],
-    icon: '[ AI ]',
-    color: '#e41a1a',
+    icon: 'AI',
+    color: '#991b1b',
   },
   {
     title: 'Wellbeing Engine',
     items: [
       '8 parameters: commute, hours, mode, salary, air, attrition, heat, cost',
       '35 Indian cities with CoL, PM2.5, WBGT data',
-      '13 research papers backing every formula',
+      '12 research papers backing every formula',
       'Relocation penalty from Gallup community wellbeing',
     ],
-    icon: '[ WB ]',
-    color: '#22c55e',
+    icon: 'WB',
+    color: '#166534',
   },
   {
     title: 'Offline-First PWA',
@@ -29,7 +29,7 @@ const sections = [
       'All AI runs in-browser: ONNX Runtime + Transformers.js v4',
       'WebGPU acceleration, WASM fallback',
     ],
-    icon: '[ SW ]',
+    icon: 'SW',
     color: '#182B49',
   },
   {
@@ -40,8 +40,8 @@ const sections = [
       '9-agent DAG with Kahn topological sort',
       'ReAct traces for every agent decision',
     ],
-    icon: '[ ms ]',
-    color: '#d4a800',
+    icon: 'ms',
+    color: '#78350f',
   },
 ];
 
@@ -49,7 +49,7 @@ export function Slide08TechDeep() {
   return (
     <div
       className="flex h-full w-full flex-col items-center justify-center p-8 md:p-16"
-      style={{ backgroundColor: '#182B49', color: '#ffffff' }}
+      style={{ backgroundColor: '#f8fafc', color: '#182B49' }}
     >
       <h2 className="mb-10 text-4xl font-extrabold md:text-5xl">
         Technical Deep-Dive
@@ -61,26 +61,25 @@ export function Slide08TechDeep() {
             key={s.title}
             className="rounded-xl p-6"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              backgroundColor: '#ffffff',
               borderLeft: `4px solid ${s.color}`,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
             }}
           >
             <div className="mb-3 flex items-center gap-3">
               <span
-                className="rounded px-2 py-1 font-mono text-xs font-bold"
-                style={{ backgroundColor: s.color, color: '#ffffff' }}
+                className="rounded px-2 py-1 font-mono text-xs font-bold text-white"
+                style={{ backgroundColor: s.color }}
               >
                 {s.icon}
               </span>
-              <h3 className="text-xl font-bold">{s.title}</h3>
+              <h3 className="text-xl font-bold" style={{ color: '#182B49' }}>
+                {s.title}
+              </h3>
             </div>
             <ul className="space-y-1.5">
               {s.items.map((item) => (
-                <li
-                  key={item}
-                  className="text-base"
-                  style={{ color: 'rgba(255, 255, 255, 0.85)' }}
-                >
+                <li key={item} className="text-base" style={{ color: '#1e293b' }}>
                   {item}
                 </li>
               ))}

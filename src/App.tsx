@@ -20,6 +20,9 @@ const CandidateDetail = lazy(() =>
 const PitchDeck = lazy(() =>
   import('./pages/PitchDeck').then((m) => ({ default: m.PitchDeck })),
 );
+const CapstoneReport = lazy(() =>
+  import('./pages/CapstoneReport').then((m) => ({ default: m.CapstoneReport })),
+);
 const EmployerPublish = lazy(() => import('./pages/EmployerPublish'));
 const EmployerMatches = lazy(() => import('./pages/EmployerMatches'));
 const EmployerCriteria = lazy(() => import('./pages/EmployerCriteria'));
@@ -93,6 +96,7 @@ export function App() {
             <Route path="bridge/:code/scorecard" element={<BridgeScorecard />} />
           </Route>
           <Route path="pitch" element={<PitchDeck />} />
+          <Route path="capstone-report" element={<CapstoneReport />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
