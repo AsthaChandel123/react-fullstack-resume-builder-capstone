@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export function Footer() {
   return (
     <footer
@@ -8,6 +10,10 @@ export function Footer() {
       <div>
         <div className="text-sm font-bold text-white">ResumeAI</div>
         <div className="text-xs text-white/80">BTech CSE Capstone Project</div>
+        <div className="mt-1 flex gap-3 text-xs">
+          <Link to="/capstone-report" className="text-white/70 underline hover:text-white">Capstone Report</Link>
+          <Link to="/pitch" className="text-white/70 underline hover:text-white">Pitch Deck</Link>
+        </div>
       </div>
       <div className="text-center">
         <div className="text-xs text-white/85">Developed by</div>
