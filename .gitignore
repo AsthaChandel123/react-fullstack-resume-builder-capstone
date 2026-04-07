@@ -21,3 +21,8 @@ screenshots/
 # Firebase
 firebase/functions/lib/
 firebase/functions/node_modules/
+.vercel
+test-*.png
+firebase/.firebase/
+firebase/*.bak
+firebase/*.deploy

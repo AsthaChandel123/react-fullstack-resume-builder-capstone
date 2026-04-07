@@ -14,21 +14,25 @@ export function Landing() {
       <section
         className="px-8 py-20 text-center"
         style={{
-          background:
-            'linear-gradient(170deg, var(--accent-navy) 0%, var(--saathi-accent-teal) 60%, var(--accent-navy) 100%)',
+          background: 'var(--accent-navy)',
         }}
       >
         <h1 className="mb-3 text-4xl font-extrabold leading-tight text-white md:text-5xl">
           Meet Saathi. Your Career Companion.
         </h1>
-        <p className="mx-auto mb-8 max-w-lg text-white/70">
+        <p className="mx-auto mb-8 max-w-lg text-white/90">
           Talk to Saathi like a friend. In any language. Your resume builds itself. Then see which jobs actually fit your life.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           {PILLS.map((pill) => (
             <span
               key={pill}
-              className="rounded-full bg-white/15 px-4 py-1.5 text-xs text-white"
+              className="rounded-full px-4 py-1.5 text-xs font-medium"
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
             >
               {pill}
             </span>
