@@ -420,6 +420,38 @@ export const chapterContent = `
 <div class="report-page">
   <h2 class="chapter-title">Chapter 4: Tools and Technologies</h2>
 
+  <h3 class="section-title">4.0 Technology Evolution from Original Proposal</h3>
+
+  <p>The original project proposal (August 2025) specified a conventional client-server architecture using Bootstrap for frontend styling, Django as the backend framework, and SQL as the database layer. During the requirements analysis and system design phases, it became evident that the project&rsquo;s core architectural requirements&mdash;offline-first operation, in-browser AI inference, and zero server-side data processing&mdash;were fundamentally incompatible with this traditional stack. Each technology was therefore replaced with a more appropriate alternative, as documented in Table 4.0.</p>
+
+  <div style="page-break-inside: auto;">
+  <table>
+    <thead>
+      <tr><th>Original Proposal</th><th>Final Implementation</th><th>Rationale for Change</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Bootstrap</strong> (CSS framework)</td>
+        <td><strong>Tailwind CSS 4.1</strong></td>
+        <td>Bootstrap ships approximately 230&thinsp;KB of pre-built component CSS regardless of actual usage. Tailwind CSS uses a utility-first, tree-shakeable architecture that emits only the CSS classes referenced in the source code, reducing the production stylesheet to under 15&thinsp;KB. Tailwind&rsquo;s CSS custom property system enables runtime theme switching (light/dark mode) without JavaScript class toggling. Industry adoption: Tailwind is the second most-used CSS framework globally (State of CSS 2024 Survey; 46% satisfaction rate vs. Bootstrap&rsquo;s 35%) and is used in production by Shopify, GitHub, NASA JPL, and Vercel.</td>
+      </tr>
+      <tr>
+        <td><strong>Django</strong> (Python web framework)</td>
+        <td><strong>Firebase Cloud Functions v2</strong> (Node.js 20, serverless)</td>
+        <td>Django is a monolithic server framework requiring a persistent running process, WSGI/ASGI application server, and manual scaling configuration. ResumeAI&rsquo;s architecture performs 95% of computation in the browser; only six operations require server-side execution (HMAC signing, session creation, match notifications). Firebase Cloud Functions provide serverless, auto-scaling, pay-per-invocation execution with zero infrastructure management. The Node.js runtime also enables shared TypeScript type definitions between client and server, eliminating the serialisation mismatches common in polyglot (Python server + JavaScript client) architectures. Industry adoption: serverless functions are the dominant backend pattern for modern web applications (AWS Lambda processes over 10 trillion invocations monthly as of 2025; Firebase serves over 3 million applications).</td>
+      </tr>
+      <tr>
+        <td><strong>SQL</strong> (relational database)</td>
+        <td><strong>Cloud Firestore</strong> (NoSQL document database) + <strong>IndexedDB</strong> (browser-native storage)</td>
+        <td>A SQL database requires a persistent server, connection pooling, schema migrations, and cannot function offline. ResumeAI&rsquo;s offline-first requirement mandates that all user data remain accessible without network connectivity. IndexedDB, a W3C-standard browser database, provides persistent structured storage with transactional guarantees that survives tab closure and browser restarts. Cloud Firestore complements IndexedDB for shared data (assessment criteria, signed scorecards, match signals) with built-in real-time synchronisation, document-level security rules, and automatic horizontal scaling. The combination of IndexedDB (local, offline) and Firestore (shared, server-validated) is the standard architecture for Progressive Web Applications. Industry adoption: IndexedDB is used by Twitter/X Lite, Pinterest, Starbucks, and every installable PWA; Firestore is the default database for Google&rsquo;s mobile and web platform.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="tbl-caption">Table 4.0: Technology Evolution from Original Proposal</p>
+  </div>
+
+  <p>In summary, each replacement represents a migration from a server-centric technology to one designed for client-first, offline-capable, serverless architectures. The original proposal&rsquo;s stack (Bootstrap, Django, SQL) is well-suited for traditional request-response web applications; however, ResumeAI&rsquo;s requirement that all AI inference execute in the browser, that no resume data leave the device, and that the application function without network connectivity necessitated a fundamentally different technology selection. The chosen alternatives are not experimental: each is a mature, widely-adopted technology with extensive production usage at industry scale.</p>
+
   <div style="page-break-inside: auto;">
   <table>
     <thead>
