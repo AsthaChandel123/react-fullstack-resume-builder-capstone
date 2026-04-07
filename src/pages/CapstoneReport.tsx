@@ -25,7 +25,7 @@ export function CapstoneReport() {
           table { page-break-inside: auto; break-inside: auto; }
           table thead { display: table-header-group; }
           table tr { page-break-inside: avoid; break-inside: avoid; }
-          .table-caption { page-break-before: avoid; break-before: avoid; }
+          .tbl-caption { page-break-before: avoid; break-before: avoid; }
           p { orphans: 3; widows: 3; }
         }
         @media screen {
@@ -197,7 +197,7 @@ export function CapstoneReport() {
         }
         /* Variable names: default dark red (already set in base code) */
 
-        .report-page .table-caption,
+        .report-page .tbl-caption,
         .report-page .figure-caption {
           text-align: center;
           font-style: italic;

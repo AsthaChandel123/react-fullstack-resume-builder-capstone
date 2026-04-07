@@ -167,7 +167,7 @@ export const chapterContent = `
       </tr>
     </tbody>
   </table>
-  <p class="table-caption">Table 2.1: Research Gap Analysis</p>
+  <p class="tbl-caption">Table 2.1: Research Gap Analysis</p>
   </div>
 </div>
 
@@ -197,7 +197,7 @@ export const chapterContent = `
       <tr><td>FR-10</td><td>The system shall compute an 8-parameter wellbeing score for job opportunities across 31 Indian cities.</td><td>Wellbeing</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table 3.1: Functional Requirements</p>
+  <p class="tbl-caption">Table 3.1: Functional Requirements</p>
   </div>
 
   <h4 class="subsection-title">3.1.2 Non-Functional Requirements</h4>
@@ -216,7 +216,7 @@ export const chapterContent = `
       <tr><td>NFR-6</td><td>The test suite shall maintain a minimum of 500 automated tests covering unit, integration, security, and accessibility domains.</td><td>Quality</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table 3.2: Non-Functional Requirements</p>
+  <p class="tbl-caption">Table 3.2: Non-Functional Requirements</p>
   </div>
 
   <h3 class="section-title">3.2 System Architecture Overview</h3>
@@ -410,7 +410,7 @@ export const chapterContent = `
       <tr><td><code data-type="str">replies</code></td><td>EmployerReply (matchId, employerId, candidateId, message, sentAt)</td><td>Employer responses to match signals</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table 3.3: Firestore Collections</p>
+  <p class="tbl-caption">Table 3.3: Firestore Collections</p>
   </div>
 
   <p>Client-side persistence uses IndexedDB through a custom Zustand middleware adapter (<code data-type="file">src/store/persist.ts</code>) for the resume store, employer store, and Bridge store. The Saathi conversation state is persisted to localStorage via <code data-type="fn">saveToStorage()</code> in <code data-type="file">src/saathi/engine/slotMachine.ts</code> for rapid access during conversation flow.</p>
@@ -448,7 +448,7 @@ export const chapterContent = `
       <tr><td>qrcode</td><td>1.5.4</td><td>QR code generation for scorecard sharing</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table 4.1: Tools and Technologies</p>
+  <p class="tbl-caption">Table 4.1: Tools and Technologies</p>
   </div>
 
   <h3 class="section-title">4.1 Frontend Stack</h3>
@@ -640,7 +640,7 @@ export const chapterContent = `
       <tr><td>Speech + tab switch</td><td>-12</td><td>Combined audio + browser event</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table 5.2: Anti-Cheat Penalties</p>
+  <p class="tbl-caption">Table 5.2: Anti-Cheat Penalties</p>
   </div>
 
   <h4 class="subsection-title">5.4.5 Cryptographic Scorecard Signing</h4>
@@ -671,7 +671,7 @@ export const chapterContent = `
       <tr><td>Commute Cost</td><td>5%</td><td>100 - (cost/salary)% &times; 10. ORF India</td><td>Transit costs + fuel rates</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table 5.3: Wellbeing Scoring Parameters</p>
+  <p class="tbl-caption">Table 5.3: Wellbeing Scoring Parameters</p>
   </div>
 
   <p>City-specific data is stored in three lookup tables: <code data-type="file">src/wellbeing/data/cityCoL.ts</code> (cost-of-living indices for 35 city entries from Numbeo India 2025), <code data-type="file">src/wellbeing/data/cityAQI.ts</code> (annual PM2.5 values from CPCB 2025), and <code data-type="file">src/wellbeing/data/cityWBGT.ts</code> (peak summer WBGT from IMD 2025). Each lookup function normalizes city names and falls back to a moderate default when the city is not found.</p>
@@ -778,7 +778,7 @@ export const chapterContent = `
       <tr><td><strong>Total</strong></td><td><strong>27</strong></td><td><strong>516</strong></td><td><strong>Pass</strong></td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table 6.1: Test Results by Module</p>
+  <p class="tbl-caption">Table 6.1: Test Results by Module</p>
   </div>
 </div>
 
@@ -946,7 +946,7 @@ export const chapterContent = `
       <tr><td>Completeness</td><td>2%</td><td>count(present_sections) / count(expected_sections)</td><td>Ladders Eye-Tracking 2018</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table B.1: Candidate Scoring Formulas</p>
+  <p class="tbl-caption">Table B.1: Candidate Scoring Formulas</p>
   </div>
 
   <p class="no-indent" style="margin-top: 12pt;"><strong>Composite:</strong> base_score = &Sigma;(w<sub>i</sub> &times; s<sub>i</sub>) &times; 100. Red flag penalties: fabrication=-20, embellishment=-10, omission=-5 (Henle et al. 2019). Final = clamp(base + penalty, 0, 100). Parseability hard gate: &lt;75% sections identified &rarr; score=0.</p>
@@ -967,7 +967,7 @@ export const chapterContent = `
       <tr><td>Commute Cost</td><td>5%</td><td>max(0, 100 - (monthly_cost / monthly_salary) &times; 1000)</td><td>ORF India commute economics</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table B.2: Wellbeing Scoring Formulas</p>
+  <p class="tbl-caption">Table B.2: Wellbeing Scoring Formulas</p>
   </div>
 
   <p class="no-indent" style="margin-top: 12pt;"><strong>Composite:</strong> &Sigma;(w<sub>i</sub> &times; s<sub>i</sub>), relocation penalty = -10. Classification: thriving (&ge;80), comfortable (60&ndash;79), strained (40&ndash;59), at-risk (20&ndash;39), concerning (&lt;20).</p>
@@ -997,7 +997,7 @@ export const chapterContent = `
       <tr><td>Domain</td><td>14</td><td>Machine Learning, Deep Learning, NLP, Computer Vision, Data Science, Cybersecurity, Blockchain, IoT, Cloud Architecture, DevSecOps, MLOps</td></tr>
     </tbody>
   </table>
-  <p class="table-caption">Table C.1: Skills Taxonomy by Category</p>
+  <p class="tbl-caption">Table C.1: Skills Taxonomy by Category</p>
   </div>
 
   <p>All lookups are O(1) via pre-built <code data-type="type">Map</code> data structures. The <code data-type="fn">normalizeSkill()</code> function maps aliases to canonical IDs (e.g., &ldquo;JS&rdquo; &rarr; &ldquo;javascript&rdquo;, &ldquo;k8s&rdquo; &rarr; &ldquo;kubernetes&rdquo;, &ldquo;ML&rdquo; &rarr; &ldquo;machine-learning&rdquo;). The <code data-type="fn">computeSkillOverlap()</code> function produces exact matches (weight 1.0) and adjacent matches (weight 0.5) to compute a composite skill alignment score.</p>
