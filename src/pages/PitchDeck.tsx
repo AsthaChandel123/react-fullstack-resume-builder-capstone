@@ -12,7 +12,7 @@ import { Slide10ThankYou } from '../pitch/slides/Slide10ThankYou';
 
 export function PitchDeck() {
   return (
-    <main className="pitch-fullscreen h-screen w-screen overflow-hidden print:h-auto print:overflow-visible">
+    <main className="pitch-fullscreen fixed inset-0 overflow-hidden print:relative print:h-auto print:overflow-visible" style={{ backgroundColor: '#ffffff' }}>
       <PitchNav>
         <Slide01Title />
         <Slide02Problem />

@@ -2,6 +2,12 @@
   "name": "resumeai",
   "private": true,
   "version": "1.0.0",
+  "description": "Offline-first, in-browser AI resume builder and employer analysis platform. BTech CSE 20-credit Capstone by Astha Chandel, Shoolini University.",
+  "homepage": "https://astha-capstone.dmj.one",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/divyamohan1993/astha-react-fullstack-resume-builder-capstone.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

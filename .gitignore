@@ -7,6 +7,8 @@ dev-dist/
 .pnp.*
 
 .superpowers/
+superpowers/
+docs/superpowers/
 .vscode/
 .env
 .env.local

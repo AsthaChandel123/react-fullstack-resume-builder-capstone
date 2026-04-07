@@ -32,25 +32,28 @@ export function Slide07Research() {
       <h2 className="mb-2 text-4xl font-extrabold md:text-5xl">
         Research-Backed Scoring
       </h2>
-      <p className="mb-6 text-lg" style={{ color: '#666666' }}>
+      <p className="mb-6 text-lg font-medium" style={{ color: '#475569' }}>
         Every weight traceable to published research. Weights sum to 95% + hard gate + penalty.
       </p>
 
       <div className="flex w-full max-w-6xl gap-4">
         {/* Candidate Scoring */}
         <div
-          className="flex-1 overflow-hidden rounded-2xl shadow-xl"
-          style={{ border: '1px solid #e0e0e0' }}
+          className="flex-1 overflow-hidden rounded-2xl"
+          style={{ border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
         >
-          <div className="px-4 py-2 text-center text-sm font-bold text-white" style={{ backgroundColor: '#182B49' }}>
+          <div
+            className="px-4 py-2 text-center text-sm font-bold text-white"
+            style={{ backgroundColor: '#182B49' }}
+          >
             Candidate Score (9 params + gates)
           </div>
           <table className="w-full text-left text-xs">
             <thead>
-              <tr style={{ backgroundColor: '#f0f0f0' }}>
-                <th className="px-3 py-1.5 font-bold">Parameter</th>
-                <th className="px-3 py-1.5 font-bold">Weight</th>
-                <th className="px-3 py-1.5 font-bold">Citation</th>
+              <tr style={{ backgroundColor: '#f1f5f9' }}>
+                <th className="px-3 py-1.5 font-bold" style={{ color: '#1e293b' }}>Parameter</th>
+                <th className="px-3 py-1.5 font-bold" style={{ color: '#1e293b' }}>Weight</th>
+                <th className="px-3 py-1.5 font-bold" style={{ color: '#1e293b' }}>Citation</th>
               </tr>
             </thead>
             <tbody>
@@ -58,18 +61,18 @@ export function Slide07Research() {
                 <tr
                   key={p.param}
                   style={{
-                    backgroundColor: i % 2 === 0 ? '#ffffff' : '#f9f9f9',
-                    borderBottom: '1px solid #e0e0e0',
+                    backgroundColor: i % 2 === 0 ? '#ffffff' : '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
                   }}
                 >
-                  <td className="px-3 py-1.5 font-semibold">{p.param}</td>
+                  <td className="px-3 py-1.5 font-semibold" style={{ color: '#1e293b' }}>{p.param}</td>
                   <td
                     className="px-3 py-1.5 font-bold"
-                    style={{ color: p.weight.includes('%') ? '#e41a1a' : '#182B49' }}
+                    style={{ color: p.weight.includes('%') ? '#991b1b' : '#182B49' }}
                   >
                     {p.weight}
                   </td>
-                  <td className="px-3 py-1.5" style={{ color: '#666666' }}>
+                  <td className="px-3 py-1.5" style={{ color: '#475569' }}>
                     {p.source}
                   </td>
                 </tr>
@@ -80,18 +83,21 @@ export function Slide07Research() {
 
         {/* Wellbeing Scoring */}
         <div
-          className="flex-1 overflow-hidden rounded-2xl shadow-xl"
-          style={{ border: '1px solid #e0e0e0' }}
+          className="flex-1 overflow-hidden rounded-2xl"
+          style={{ border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
         >
-          <div className="px-4 py-2 text-center text-sm font-bold text-white" style={{ backgroundColor: '#22c55e' }}>
+          <div
+            className="px-4 py-2 text-center text-sm font-bold text-white"
+            style={{ backgroundColor: '#166534' }}
+          >
             Wellbeing Score (8 params, 35 cities)
           </div>
           <table className="w-full text-left text-xs">
             <thead>
-              <tr style={{ backgroundColor: '#f0f0f0' }}>
-                <th className="px-3 py-1.5 font-bold">Parameter</th>
-                <th className="px-3 py-1.5 font-bold">Weight</th>
-                <th className="px-3 py-1.5 font-bold">Citation</th>
+              <tr style={{ backgroundColor: '#f1f5f9' }}>
+                <th className="px-3 py-1.5 font-bold" style={{ color: '#1e293b' }}>Parameter</th>
+                <th className="px-3 py-1.5 font-bold" style={{ color: '#1e293b' }}>Weight</th>
+                <th className="px-3 py-1.5 font-bold" style={{ color: '#1e293b' }}>Citation</th>
               </tr>
             </thead>
             <tbody>
@@ -99,18 +105,15 @@ export function Slide07Research() {
                 <tr
                   key={p.param}
                   style={{
-                    backgroundColor: i % 2 === 0 ? '#ffffff' : '#f9f9f9',
-                    borderBottom: '1px solid #e0e0e0',
+                    backgroundColor: i % 2 === 0 ? '#ffffff' : '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
                   }}
                 >
-                  <td className="px-3 py-1.5 font-semibold">{p.param}</td>
-                  <td
-                    className="px-3 py-1.5 font-bold"
-                    style={{ color: '#22c55e' }}
-                  >
+                  <td className="px-3 py-1.5 font-semibold" style={{ color: '#1e293b' }}>{p.param}</td>
+                  <td className="px-3 py-1.5 font-bold" style={{ color: '#166534' }}>
                     {p.weight}
                   </td>
-                  <td className="px-3 py-1.5" style={{ color: '#666666' }}>
+                  <td className="px-3 py-1.5" style={{ color: '#475569' }}>
                     {p.source}
                   </td>
                 </tr>

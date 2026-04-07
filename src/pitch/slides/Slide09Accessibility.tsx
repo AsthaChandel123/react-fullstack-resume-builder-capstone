@@ -22,7 +22,7 @@ export function Slide09Accessibility() {
       <div className="mb-10 mt-4 flex flex-wrap justify-center gap-4">
         <span
           className="rounded-full px-6 py-3 text-xl font-bold text-white"
-          style={{ backgroundColor: '#e41a1a' }}
+          style={{ backgroundColor: '#991b1b' }}
         >
           WCAG 2.2 AAA
         </span>
@@ -39,7 +39,7 @@ export function Slide09Accessibility() {
           <div
             key={check}
             className="flex items-center gap-4 rounded-xl px-6 py-4"
-            style={{ backgroundColor: '#f5f5f5' }}
+            style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
           >
             <svg
               width="24"
@@ -49,7 +49,7 @@ export function Slide09Accessibility() {
               aria-hidden="true"
               className="flex-shrink-0"
             >
-              <circle cx="12" cy="12" r="12" fill="#22c55e" />
+              <circle cx="12" cy="12" r="12" fill="#166534" />
               <path
                 d="M7 12.5L10.5 16L17 9"
                 stroke="#ffffff"
@@ -58,7 +58,9 @@ export function Slide09Accessibility() {
                 strokeLinejoin="round"
               />
             </svg>
-            <span className="text-lg font-semibold">{check}</span>
+            <span className="text-lg font-semibold" style={{ color: '#1e293b' }}>
+              {check}
+            </span>
           </div>
         ))}
       </div>

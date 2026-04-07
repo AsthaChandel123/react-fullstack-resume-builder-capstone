@@ -7,28 +7,33 @@ const mockCandidates = [
 ];
 
 function scoreColor(score: number): string {
-  if (score >= 80) return '#22c55e';
-  if (score >= 60) return '#d4a800';
-  return '#e41a1a';
+  if (score >= 80) return '#166534';
+  if (score >= 60) return '#78350f';
+  return '#991b1b';
+}
+
+function scoreBg(score: number): string {
+  if (score >= 80) return '#166534';
+  if (score >= 60) return '#78350f';
+  return '#991b1b';
 }
 
 export function Slide06DemoEmployer() {
   return (
     <div
       className="flex h-full w-full flex-col items-center justify-center p-8 md:p-16"
-      style={{ backgroundColor: '#f5f5f5', color: '#182B49' }}
+      style={{ backgroundColor: '#f8fafc', color: '#182B49' }}
     >
       <h2 className="mb-2 text-4xl font-extrabold md:text-5xl">
         Employer Dashboard
       </h2>
-      <p className="mb-10 text-xl" style={{ color: '#666666' }}>
+      <p className="mb-10 text-xl font-medium" style={{ color: '#475569' }}>
         Paste JD. Upload 100+ resumes. AI scores in seconds.
       </p>
 
-      {/* Table mockup */}
       <div
-        className="w-full max-w-4xl overflow-hidden rounded-2xl shadow-2xl"
-        style={{ backgroundColor: '#ffffff' }}
+        className="w-full max-w-4xl overflow-hidden rounded-2xl"
+        style={{ backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0' }}
       >
         <table className="w-full text-left">
           <thead>
@@ -45,27 +50,26 @@ export function Slide06DemoEmployer() {
             {mockCandidates.map((c, i) => (
               <tr
                 key={c.name}
-                className="border-b"
-                style={{ borderColor: '#e0e0e0' }}
+                style={{ borderBottom: '1px solid #e2e8f0' }}
               >
-                <td className="px-6 py-3 text-sm font-semibold">{i + 1}</td>
-                <td className="px-6 py-3 text-sm font-semibold">{c.name}</td>
+                <td className="px-6 py-3 text-sm font-semibold" style={{ color: '#1e293b' }}>{i + 1}</td>
+                <td className="px-6 py-3 text-sm font-semibold" style={{ color: '#1e293b' }}>{c.name}</td>
                 <td className="px-6 py-3">
                   <span
                     className="inline-block rounded-full px-3 py-1 text-sm font-bold text-white"
-                    style={{ backgroundColor: scoreColor(c.score) }}
+                    style={{ backgroundColor: scoreBg(c.score) }}
                   >
                     {c.score}
                   </span>
                 </td>
                 <td
-                  className="px-6 py-3 text-sm font-semibold"
+                  className="px-6 py-3 text-sm font-bold"
                   style={{ color: scoreColor(c.skills) }}
                 >
                   {c.skills}
                 </td>
                 <td
-                  className="px-6 py-3 text-sm font-semibold"
+                  className="px-6 py-3 text-sm font-bold"
                   style={{ color: scoreColor(c.exp) }}
                 >
                   {c.exp}
@@ -74,15 +78,12 @@ export function Slide06DemoEmployer() {
                   {c.flags > 0 ? (
                     <span
                       className="inline-block rounded-full px-3 py-1 text-xs font-bold"
-                      style={{
-                        backgroundColor: 'rgba(228, 26, 26, 0.1)',
-                        color: '#e41a1a',
-                      }}
+                      style={{ backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}
                     >
                       {c.flags} flag{c.flags > 1 ? 's' : ''}
                     </span>
                   ) : (
-                    <span style={{ color: '#22c55e' }}>Clear</span>
+                    <span className="font-semibold" style={{ color: '#166534' }}>Clear</span>
                   )}
                 </td>
               </tr>
