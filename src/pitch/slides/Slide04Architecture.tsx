@@ -1,112 +1,91 @@
-const dagNodes = [
-  {
-    id: 'parallel',
-    label: 'Parallel Start',
-    nodes: ['JD Agent', 'L1 NLP', 'L2 Embed', 'Distance'],
-    color: '#e41a1a',
-  },
-  {
-    id: 'converge1',
-    label: 'After JD + L1',
-    nodes: ['Skills Matcher', 'L3 Gemma 4 E2B'],
-    color: '#d4a800',
-  },
-  {
-    id: 'fallback',
-    label: 'If L3 fails',
-    nodes: ['L4 Gemini Fallback'],
-    color: '#666666',
-  },
-  {
-    id: 'converge2',
-    label: 'Converge',
-    nodes: ['Scorer', 'Coach'],
-    color: '#182B49',
-  },
-];
-
-const saathiFlow = [
-  { label: 'Saathi Chat', desc: 'Slot-filling conversation', color: '#e41a1a' },
-  { label: 'Entity Extraction', desc: 'DistilBERT-NER + regex', color: '#d4a800' },
-  { label: 'Slot Machine', desc: '24 slots, 220+ templates', color: '#22c55e' },
-  { label: 'Resume Generator', desc: 'Live preview output', color: '#182B49' },
-];
-
-const stack = [
-  'Vite 6',
-  'React 19',
-  'Tailwind CSS 4',
-  'Zustand',
-  'ONNX Runtime',
-  'Transformers.js v4',
-  'Workbox PWA',
-];
-
 export function Slide04Architecture() {
   return (
     <div
       className="flex h-full w-full flex-col items-center justify-center p-6 md:p-12"
-      style={{ backgroundColor: '#182B49', color: '#ffffff' }}
+      style={{ backgroundColor: '#0f172a', color: '#ffffff' }}
     >
-      <h2 className="mb-6 text-4xl font-extrabold md:text-5xl">
+      <h2 className="mb-8 text-4xl font-extrabold md:text-5xl">
         Architecture
       </h2>
 
-      {/* Saathi pipeline */}
-      <div className="mb-6 w-full max-w-5xl">
-        <h3 className="mb-3 text-center text-lg font-bold opacity-80">Student: Saathi Conversation Engine</h3>
-        <div className="flex flex-wrap items-center justify-center gap-0">
-          {saathiFlow.map((node, i) => (
-            <div key={node.label} className="flex items-center">
-              <div
-                className="flex flex-col items-center rounded-lg px-4 py-3 text-center shadow-lg"
-                style={{ backgroundColor: node.color, minWidth: 150 }}
-              >
-                <span className="text-sm font-bold">{node.label}</span>
-                <span className="mt-0.5 text-xs opacity-80">{node.desc}</span>
-              </div>
-              {i < saathiFlow.length - 1 && (
-                <svg width="24" height="20" viewBox="0 0 24 20" className="mx-1 flex-shrink-0" aria-hidden="true">
-                  <path d="M4 10H18M18 10L13 5M18 10L13 15" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Two pipelines side by side */}
+      <div className="mb-8 grid w-full max-w-6xl gap-8 md:grid-cols-2">
 
-      {/* DAG pipeline */}
-      <div className="mb-6 w-full max-w-5xl">
-        <h3 className="mb-3 text-center text-lg font-bold opacity-80">Employer: 9-Agent DAG Pipeline</h3>
-        <div className="flex flex-wrap items-center justify-center gap-0">
-          {dagNodes.map((group, i) => (
-            <div key={group.id} className="flex items-center">
-              <div
-                className="flex flex-col items-center rounded-lg px-4 py-3 text-center shadow-lg"
-                style={{ backgroundColor: group.color, minWidth: 160 }}
-              >
-                <span className="text-xs font-semibold opacity-70">{group.label}</span>
-                <span className="mt-0.5 text-sm font-bold">{group.nodes.join(', ')}</span>
+        {/* Saathi pipeline */}
+        <div
+          className="rounded-2xl p-6"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          <h3 className="mb-5 text-center text-lg font-bold" style={{ color: '#2dd4bf' }}>
+            Student: Saathi Conversation Engine
+          </h3>
+          <div className="space-y-3">
+            {[
+              { label: 'Saathi Chat', desc: 'Slot-filling conversation', accent: '#2dd4bf' },
+              { label: 'Entity Extraction', desc: 'DistilBERT-NER + regex patterns', accent: '#38bdf8' },
+              { label: 'Slot Machine', desc: '24 slots, 241 response templates', accent: '#818cf8' },
+              { label: 'Resume Generator', desc: 'Live preview, 4 ATS templates', accent: '#a78bfa' },
+            ].map((node, i) => (
+              <div key={node.label} className="flex items-center gap-3">
+                <div
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                  style={{ backgroundColor: node.accent, color: '#0f172a' }}
+                >
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold" style={{ color: node.accent }}>{node.label}</div>
+                  <div className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{node.desc}</div>
+                </div>
               </div>
-              {i < dagNodes.length - 1 && (
-                <svg width="24" height="20" viewBox="0 0 24 20" className="mx-1 flex-shrink-0" aria-hidden="true">
-                  <path d="M4 10H18M18 10L13 5M18 10L13 15" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        {/* DAG pipeline */}
+        <div
+          className="rounded-2xl p-6"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          <h3 className="mb-5 text-center text-lg font-bold" style={{ color: '#f97316' }}>
+            Employer: 9-Agent DAG Pipeline
+          </h3>
+          <div className="space-y-3">
+            {[
+              { label: 'Parallel Start', desc: 'JD Agent + L1 NLP + L2 Embed + Distance', accent: '#f97316' },
+              { label: 'Converge', desc: 'Skills Matcher + L3 Gemma 4 E2B', accent: '#fb923c' },
+              { label: 'Fallback', desc: 'L4 Gemini 2.5 Flash (if L3 fails)', accent: '#fbbf24' },
+              { label: 'Output', desc: 'Scorer + Coach with ReAct traces', accent: '#fde68a' },
+            ].map((node, i) => (
+              <div key={node.label} className="flex items-center gap-3">
+                <div
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                  style={{ backgroundColor: node.accent, color: '#0f172a' }}
+                >
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold" style={{ color: node.accent }}>{node.label}</div>
+                  <div className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{node.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Tech stack */}
-      <div className="flex flex-wrap justify-center gap-3">
-        {stack.map((tech) => (
+      <div className="flex flex-wrap justify-center gap-2">
+        {[
+          'Vite 6', 'React 19', 'Tailwind CSS 4', 'Zustand', 'ONNX Runtime',
+          'Transformers.js v4', 'Firebase', 'Workbox PWA',
+        ].map((tech) => (
           <span
             key={tech}
-            className="rounded-full px-4 py-2 text-sm font-semibold"
+            className="rounded-full px-3 py-1.5 text-xs font-semibold"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
             }}
           >
             {tech}
