@@ -211,19 +211,19 @@ export function PitchNav({ children }: PitchNavProps) {
 
       {/* Formal footer */}
       <div
-        className="absolute bottom-11 left-0 z-30 flex w-full items-center justify-between border-t px-6 py-1.5 text-xs print:hidden"
-        style={{ color: '#475569', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: 'rgba(255,255,255,0.85)' }}
+        className="absolute bottom-0 left-0 z-30 flex w-full items-center justify-between px-4 py-0.5 print:hidden"
+        style={{ color: '#94a3b8', fontSize: '9px', backgroundColor: 'rgba(255,255,255,0.6)' }}
       >
-        <span className="font-medium">Astha Chandel | GF202214559</span>
+        <span>Astha Chandel | GF202214559</span>
         <span>BTech CSE Capstone | Shoolini University, Solan, HP</span>
-        <span className="font-semibold">
-          {current + 1} / {total}
+        <span>
+          {current + 1}/{total}
         </span>
       </div>
 
       {/* Navigation */}
       <nav
-        className="absolute bottom-3 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2 transition-opacity duration-300 print:hidden"
+        className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full px-4 py-1.5 transition-opacity duration-300 print:hidden"
         style={{
           backgroundColor: 'rgba(24, 43, 73, 0.9)',
           backdropFilter: 'blur(12px)',
