@@ -6,12 +6,14 @@ export function Slide01Title() {
         background: 'linear-gradient(135deg, #182B49 0%, #2a4a7a 50%, #e41a1a 100%)',
       }}
     >
-      <img
-        src="/assets/images/shoolini-logo.png"
-        alt="Shoolini University logo"
-        className="mb-8 h-20 w-auto"
-        crossOrigin="anonymous"
-      />
+      <div className="mb-8 rounded-xl bg-white p-2">
+        <img
+          src="/assets/images/shoolini-logo.png"
+          alt="Shoolini University logo"
+          className="h-20 w-auto"
+          crossOrigin="anonymous"
+        />
+      </div>
       <h1 className="mb-6 text-6xl font-extrabold tracking-tight md:text-7xl">
         ResumeAI
       </h1>

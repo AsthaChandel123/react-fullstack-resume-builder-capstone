@@ -14,13 +14,13 @@ export function Slide02Problem() {
             className="mb-4 text-7xl font-black"
             style={{ color: '#e41a1a' }}
           >
-            75%
+            0.4%
           </span>
           <p className="text-xl font-semibold leading-relaxed">
-            of resumes rejected by ATS before human eyes
+            callback rate per application. 242 applicants compete for every opening.
           </p>
           <cite className="mt-3 block text-sm not-italic opacity-60">
-            Jobscan, 2023
+            Huntr Job Search Statistics 2026; Greenhouse 2025
           </cite>
         </div>
 
@@ -29,13 +29,13 @@ export function Slide02Problem() {
             className="mb-4 text-7xl font-black"
             style={{ color: '#ffdc00' }}
           >
-            0
+            62%
           </span>
           <p className="text-xl font-semibold leading-relaxed">
-            tools freshers have to build ATS-optimized resumes
+            of hiring managers reject AI-generated resumes that lack personalization
           </p>
           <cite className="mt-3 block text-sm not-italic opacity-60">
-            Lack of accessible, free tooling
+            Resume Now Hiring Manager Survey 2024
           </cite>
         </div>
 
@@ -44,13 +44,13 @@ export function Slide02Problem() {
             className="mb-4 text-7xl font-black"
             style={{ color: '#e41a1a' }}
           >
-            100s
+            23h
           </span>
           <p className="text-xl font-semibold leading-relaxed">
-            of resumes manually screened by recruiters per role
+            spent screening resumes per single hire. 6-8 seconds per resume.
           </p>
           <cite className="mt-3 block text-sm not-italic opacity-60">
-            Manual screening burden
+            Testlify Resume Screening Guide 2025
           </cite>
         </div>
       </div>

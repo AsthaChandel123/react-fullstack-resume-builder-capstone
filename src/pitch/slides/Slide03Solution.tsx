@@ -8,7 +8,7 @@ export function Slide03Solution() {
         The Solution
       </h2>
 
-      <div className="mb-12 grid max-w-5xl gap-8 md:grid-cols-2">
+      <div className="mb-8 grid max-w-5xl gap-8 md:grid-cols-2">
         {/* Student card */}
         <div
           className="rounded-2xl p-8 shadow-xl"
@@ -18,16 +18,16 @@ export function Slide03Solution() {
             className="mb-4 inline-block rounded-lg px-3 py-1 text-sm font-bold text-white"
             style={{ backgroundColor: '#e41a1a' }}
           >
-            Student Mode
+            Talk to Saathi
           </div>
           <h3 className="mb-3 text-2xl font-bold">
-            Build ATS-ready resumes
+            Conversational resume building
           </h3>
           <ul className="space-y-2 text-lg" style={{ color: '#333333' }}>
-            <li>4 professional templates</li>
-            <li>Live preview with direct editing</li>
-            <li>AI-powered content refinement</li>
-            <li>Download as PDF or print</li>
+            <li>Chat-first builder, no forms</li>
+            <li>Voice input in 10 Indian languages</li>
+            <li>Wellbeing score for every job offer</li>
+            <li>Session persistence across visits</li>
           </ul>
         </div>
 
@@ -40,18 +40,26 @@ export function Slide03Solution() {
             className="mb-4 inline-block rounded-lg px-3 py-1 text-sm font-bold text-white"
             style={{ backgroundColor: '#182B49' }}
           >
-            Employer Mode
+            9-Agent Agentic Pipeline
           </div>
           <h3 className="mb-3 text-2xl font-bold">
-            AI-powered candidate analysis
+            DAG-based candidate analysis
           </h3>
           <ul className="space-y-2 text-lg" style={{ color: '#333333' }}>
-            <li>Paste job description, upload resumes</li>
-            <li>12 research-cited scoring parameters</li>
+            <li>189-skill taxonomy with graph matching</li>
+            <li>JD processing, L1-L4 analysis in parallel</li>
+            <li>ReAct traces for every scoring decision</li>
             <li>Red flag and contradiction detection</li>
-            <li>Sortable, filterable rankings</li>
           </ul>
         </div>
+      </div>
+
+      {/* Bridge */}
+      <div
+        className="mb-4 rounded-xl px-8 py-4 text-center text-lg font-semibold text-white"
+        style={{ backgroundColor: '#2a4a7a' }}
+      >
+        Bridge: trust layer with signed scorecards between students and employers
       </div>
 
       <div

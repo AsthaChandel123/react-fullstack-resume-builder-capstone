@@ -5,10 +5,10 @@ export function Slide05DemoBuilder() {
       style={{ backgroundColor: '#ffffff', color: '#182B49' }}
     >
       <h2 className="mb-2 text-4xl font-extrabold md:text-5xl">
-        Student Builder
+        Saathi Builder
       </h2>
       <p className="mb-10 text-xl" style={{ color: '#666666' }}>
-        Build. Preview. Refine. Print.
+        Talk. Listen. Build. Print.
       </p>
 
       {/* Mockup */}
@@ -16,24 +16,60 @@ export function Slide05DemoBuilder() {
         className="flex w-full max-w-5xl overflow-hidden rounded-2xl shadow-2xl"
         style={{ border: '2px solid #e0e0e0' }}
       >
-        {/* Left: form mockup */}
-        <div className="w-1/2 space-y-4 border-r p-6" style={{ borderColor: '#e0e0e0', backgroundColor: '#fafafa' }}>
-          <div className="h-8 w-3/4 rounded" style={{ backgroundColor: '#e0e0e0' }} />
-          <div className="h-6 w-1/2 rounded" style={{ backgroundColor: '#e0e0e0' }} />
-          <div className="space-y-2">
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="h-10 rounded"
-                style={{ backgroundColor: '#e0e0e0' }}
-              />
-            ))}
+        {/* Left: chat mockup */}
+        <div className="w-1/2 space-y-3 border-r p-6" style={{ borderColor: '#e0e0e0', backgroundColor: '#fafafa' }}>
+          {/* Saathi message */}
+          <div className="flex justify-start">
+            <div
+              className="max-w-[80%] rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm"
+              style={{ backgroundColor: '#182B49', color: '#ffffff' }}
+            >
+              Hey! I'm Saathi. What's your name?
+            </div>
           </div>
-          <div
-            className="mt-4 h-10 w-full rounded-lg text-center text-sm font-bold leading-10 text-white"
-            style={{ backgroundColor: '#e41a1a' }}
-          >
-            AI Refine
+          {/* User message */}
+          <div className="flex justify-end">
+            <div
+              className="max-w-[80%] rounded-2xl rounded-br-sm px-4 py-2.5 text-sm"
+              style={{ backgroundColor: '#e41a1a', color: '#ffffff' }}
+            >
+              Priya Sharma
+            </div>
+          </div>
+          {/* Saathi message */}
+          <div className="flex justify-start">
+            <div
+              className="max-w-[80%] rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm"
+              style={{ backgroundColor: '#182B49', color: '#ffffff' }}
+            >
+              Nice to meet you, Priya! Where are you based?
+            </div>
+          </div>
+          {/* User message */}
+          <div className="flex justify-end">
+            <div
+              className="max-w-[80%] rounded-2xl rounded-br-sm px-4 py-2.5 text-sm"
+              style={{ backgroundColor: '#e41a1a', color: '#ffffff' }}
+            >
+              Solan, Himachal Pradesh
+            </div>
+          </div>
+          {/* Input bar mockup */}
+          <div className="flex items-center gap-2 pt-2">
+            <div
+              className="flex-1 rounded-full px-4 py-2.5 text-sm"
+              style={{ backgroundColor: '#e0e0e0', color: '#999999' }}
+            >
+              Type or tap mic to speak...
+            </div>
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white"
+              style={{ backgroundColor: '#e41a1a' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 7h2v-3.07c3.39-.49 6-3.4 6-6.93h-2c0 3.31-2.69 6-6 6s-6-2.69-6-6H3c0 3.53 2.61 6.44 6 6.93V21z"/>
+              </svg>
+            </div>
           </div>
         </div>
 
@@ -74,10 +110,10 @@ export function Slide05DemoBuilder() {
       {/* Features */}
       <div className="mt-10 flex flex-wrap justify-center gap-6 text-lg font-semibold">
         {[
-          '4 professional templates',
-          'Live preview',
-          'Direct edit',
-          'AI refinement',
+          'Conversational AI',
+          'Voice in 10 languages',
+          'Session persistence',
+          'Real-time preview',
         ].map((f) => (
           <span
             key={f}
