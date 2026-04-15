@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch({ headless: true });
+const page = await (await browser.newContext({ viewport: { width: 1366, height: 900 } })).newPage();
+page.on('pageerror', e => console.log('[err]', e.message.slice(0,200)));
+await page.goto('https://astha-capstone.dmj.one/bridge/VJ6SZA', { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(5000);
+const body = await page.locator('body').innerText();
+console.log('--- BODY ---');
+console.log(body.slice(0, 1500));
+console.log('---');
+const btns = await page.getByRole('button').allTextContents();
+console.log('BUTTONS:', btns);
+const links = await page.getByRole('link').allTextContents();
+console.log('LINKS:', links.slice(0, 10));
+await browser.close();

@@ -58,8 +58,25 @@ export function BridgeAssessment({ criteriaCode }: Props) {
           setCriteriaLoading(false);
           return;
         }
-        const data = snap.data() as BridgeCriteria;
-        setCriteria({ ...data, shortCode: criteriaCode });
+        // Normalize Firestore Timestamps -> JS Dates so the result is
+        // structured-cloneable (IndexedDB persistence would otherwise crash).
+        const raw = snap.data() as Record<string, unknown>;
+        const toDate = (v: unknown): Date | undefined => {
+          if (!v) return undefined;
+          if (v instanceof Date) return v;
+          if (typeof v === 'object' && v !== null && typeof (v as { toDate?: () => Date }).toDate === 'function') {
+            return (v as { toDate: () => Date }).toDate();
+          }
+          if (typeof v === 'string' || typeof v === 'number') return new Date(v);
+          return undefined;
+        };
+        const data: BridgeCriteria = {
+          ...(raw as BridgeCriteria),
+          shortCode: criteriaCode,
+          createdAt: toDate(raw.createdAt) ?? new Date(),
+          expiresAt: toDate(raw.expiresAt) ?? new Date(Date.now() + 90 * 86_400_000),
+        };
+        setCriteria(data);
       } catch (err) {
         setLoadError(
           err instanceof Error ? err.message : 'Failed to load criteria.',
