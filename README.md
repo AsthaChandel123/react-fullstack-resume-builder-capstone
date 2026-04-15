@@ -152,7 +152,7 @@ Anti-OCR: Test options rendered with font-weight 395-410 and letter-spacing 0.00
 | Backend | Firebase Auth (anon + email + Google), Firestore (8 collections), Cloud Functions v2 (Node 20) |
 | Testing | Vitest 3.1, React Testing Library 16.3, 516 tests across 27 test files |
 | PWA | Workbox via vite-plugin-pwa, selective caching (skips >500KB model chunks) |
-| Deploy | Vercel (primary, astha-capstone.dmj.one), Google Cloud Run, Docker/nginx |
+| Deploy | Vercel (astha-capstone.dmj.one) — auto-deploys from `main` |
 | Other | html2pdf.js, qrcode, @dnd-kit, Web Speech API, Web Crypto API, Google Maps Distance Matrix API |
 
 ## Accessibility
@@ -252,11 +252,6 @@ VITE_GEMINI_API_KEY              # Optional: enables L4 cloud fallback + Saathi 
 | astha-resume-git-main-dmjone.vercel.app | Branch alias |
 
 **GitHub repo:** [divyamohan1993/astha-react-fullstack-resume-builder-capstone](https://github.com/divyamohan1993/astha-react-fullstack-resume-builder-capstone)
-
-**Google Cloud Run (fallback):**
-```bash
-./deploy.sh   # Reads .env, builds Docker image, deploys to asia-south1
-```
 
 ## Research Citations
 
