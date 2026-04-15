@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { createHmac, randomBytes } from 'crypto';
+import { createHmac, randomBytes, createHash, timingSafeEqual } from 'crypto';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -362,4 +362,156 @@ export const onMatchCreated = onDocumentCreated('matches/{matchId}', async (even
       html: `<p>A candidate has expressed interest via criteria <strong>${match.criteriaCode}</strong>.</p><p>Log in to review the match.</p>`,
     },
   });
+});
+
+// ── Shared resume sharing (password-gated editing) ────────────────────
+
+const SHARED_RESUME_SALT_PREFIX = 'resumeai:v1:';
+const SLUG_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const SLUG_LEN = 8;
+
+function generateSlug(): string {
+  const bytes = randomBytes(SLUG_LEN);
+  let s = '';
+  for (let i = 0; i < SLUG_LEN; i++) s += SLUG_ALPHABET[bytes[i] % SLUG_ALPHABET.length];
+  return s;
+}
+
+function hashPassword(password: string, slug: string): string {
+  return createHash('sha256')
+    .update(SHARED_RESUME_SALT_PREFIX + slug + ':' + password)
+    .digest('hex');
+}
+
+function safeEqualHex(a: string, b: string): boolean {
+  try {
+    const ba = Buffer.from(a, 'hex');
+    const bb = Buffer.from(b, 'hex');
+    if (ba.length !== bb.length) return false;
+    return timingSafeEqual(ba, bb);
+  } catch {
+    return false;
+  }
+}
+
+function validResumePayload(resume: unknown): resume is Record<string, unknown> {
+  return typeof resume === 'object' && resume !== null;
+}
+
+/**
+ * createSharedResume - create a new password-protected, shareable resume.
+ *
+ * Input: { resume, password }
+ * - password may be empty string, which means the resume is public-edit
+ *   (anyone with the URL can edit). Explicit opt-in.
+ *
+ * Output: { slug, url }
+ */
+export const createSharedResume = onCall(async (request) => {
+  const { resume, password } = (request.data ?? {}) as {
+    resume?: unknown;
+    password?: string;
+  };
+  if (!validResumePayload(resume)) {
+    throw new HttpsError('invalid-argument', 'resume is required');
+  }
+  if (typeof password !== 'string') {
+    throw new HttpsError('invalid-argument', 'password must be a string (possibly empty)');
+  }
+
+  // Retry a few times in the unlikely event of a slug collision
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const slug = generateSlug();
+    const ref = db.collection('resumes').doc(slug);
+    const snap = await ref.get();
+    if (snap.exists) continue;
+
+    const passwordHash = password.length > 0 ? hashPassword(password, slug) : '';
+    await ref.set({
+      resume,
+      passwordHash,
+      hasPassword: passwordHash.length > 0,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return { slug };
+  }
+  throw new HttpsError('internal', 'Could not allocate a slug, please retry.');
+});
+
+/**
+ * updateSharedResume - update an existing shared resume. Password required
+ * when the resume was created with one; ignored when it is public-edit.
+ *
+ * Input: { slug, resume, password }
+ * Output: { ok: true }
+ */
+export const updateSharedResume = onCall(async (request) => {
+  const { slug, resume, password } = (request.data ?? {}) as {
+    slug?: string;
+    resume?: unknown;
+    password?: string;
+  };
+  if (!slug || typeof slug !== 'string' || !/^[A-Za-z0-9_-]{6,32}$/.test(slug)) {
+    throw new HttpsError('invalid-argument', 'slug is invalid');
+  }
+  if (!validResumePayload(resume)) {
+    throw new HttpsError('invalid-argument', 'resume is required');
+  }
+  if (password !== undefined && typeof password !== 'string') {
+    throw new HttpsError('invalid-argument', 'password must be a string');
+  }
+
+  const ref = db.collection('resumes').doc(slug);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new HttpsError('not-found', 'Resume not found');
+  }
+  const existing = snap.data() ?? {};
+  const storedHash: string = typeof existing.passwordHash === 'string' ? existing.passwordHash : '';
+
+  if (storedHash.length > 0) {
+    if (!password) {
+      throw new HttpsError('permission-denied', 'Password required to edit this resume.');
+    }
+    const attempted = hashPassword(password, slug);
+    if (!safeEqualHex(storedHash, attempted)) {
+      throw new HttpsError('permission-denied', 'Incorrect password.');
+    }
+  }
+
+  await ref.update({
+    resume,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  return { ok: true };
+});
+
+/**
+ * verifySharedResumePassword - check a password without performing an update.
+ * Used by the client so it can unlock the edit UI once.
+ *
+ * Input: { slug, password }
+ * Output: { ok: boolean, hasPassword: boolean }
+ */
+export const verifySharedResumePassword = onCall(async (request) => {
+  const { slug, password } = (request.data ?? {}) as {
+    slug?: string;
+    password?: string;
+  };
+  if (!slug || typeof slug !== 'string' || !/^[A-Za-z0-9_-]{6,32}$/.test(slug)) {
+    throw new HttpsError('invalid-argument', 'slug is invalid');
+  }
+  if (password !== undefined && typeof password !== 'string') {
+    throw new HttpsError('invalid-argument', 'password must be a string');
+  }
+
+  const snap = await db.collection('resumes').doc(slug).get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Resume not found');
+  const storedHash: string = ((snap.data() ?? {}).passwordHash as string) || '';
+  const hasPassword = storedHash.length > 0;
+  if (!hasPassword) return { ok: true, hasPassword: false };
+  if (!password) return { ok: false, hasPassword: true };
+  const attempted = hashPassword(password, slug);
+  return { ok: safeEqualHex(storedHash, attempted), hasPassword: true };
 });
