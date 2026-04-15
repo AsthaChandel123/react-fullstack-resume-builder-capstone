@@ -101,6 +101,7 @@ interface ResumeState {
   ) => void;
   reset: () => void;
   load: () => Promise<void>;
+  setResume: (resume: Resume) => void;
 }
 
 const storage = createIndexedDBStorage<Resume>('resume');
@@ -236,6 +237,13 @@ export const useResumeStore = create<ResumeState>((set) => ({
       const resume = createDefaultResume();
       storage.save(resume);
       return { resume };
+    }),
+
+  setResume: (incoming: Resume) =>
+    set(() => {
+      const resume = stamp(incoming);
+      storage.save(resume);
+      return { resume, loaded: true };
     }),
 
   load: async () => {

@@ -76,5 +76,24 @@ service cloud.firestore {
     match /mail/{mailId} {
       allow read, write: if false; // Cloud Functions only
     }
+
+    // Public, slug-addressable, openly editable resume snapshots.
+    // Anyone with the URL can read AND edit. Slug must be 6-32 chars to
+    // make brute-force enumeration impractical. Only the `resume` and
+    // timestamp fields are accepted. No deletes.
+    match /resumes/{slug} {
+      function validSlug() {
+        return slug.size() >= 6 && slug.size() <= 32
+          && slug.matches('[A-Za-z0-9_-]+');
+      }
+      function validPayload() {
+        return request.resource.data.keys().hasOnly(['resume', 'createdAt', 'updatedAt'])
+          && request.resource.data.resume is map;
+      }
+      allow read: if validSlug();
+      allow create: if validSlug() && validPayload();
+      allow update: if validSlug() && validPayload();
+      allow delete: if false;
+    }
   }
 }

@@ -36,6 +36,7 @@ const SaathiBuilder = lazy(() =>
 const CandidateDashboard = lazy(() =>
   import('./pages/CandidateDashboard').then((m) => ({ default: m.CandidateDashboard })),
 );
+const SharedResume = lazy(() => import('./pages/SharedResume'));
 
 function Loading() {
   return (
@@ -94,6 +95,7 @@ export function App() {
             <Route path="bridge/:code" element={<BridgeLanding />} />
             <Route path="bridge/:code/test" element={<BridgeTest />} />
             <Route path="bridge/:code/scorecard" element={<BridgeScorecard />} />
+            <Route path="r/:slug" element={<SharedResume />} />
           </Route>
           <Route path="pitch" element={<PitchDeck />} />
           <Route path="capstone-report" element={<CapstoneReport />} />
