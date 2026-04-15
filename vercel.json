@@ -1,9 +1,8 @@
 {
   "framework": "vite",
   "rewrites": [
-    { "source": "/((?!assets/|icon-|favicon|manifest|sw\\.js|workbox-|.*\\.(?:js|css|map|png|jpg|jpeg|svg|webp|gif|ico|woff2?|ttf|wasm|json)$).*)", "destination": "/index.html" }
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ],
-  "cleanUrls": true,
   "headers": [
     {
       "source": "/(.*)",
