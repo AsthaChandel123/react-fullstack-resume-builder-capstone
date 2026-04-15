@@ -10,7 +10,7 @@
 import { pipeline as tfPipeline, type TokenClassificationPipeline } from '@huggingface/transformers';
 
 let nerPipeline: TokenClassificationPipeline | null = null;
-let loading: Promise<TokenClassificationPipeline> | null = null;
+let loading: Promise<TokenClassificationPipeline | null> | null = null;
 
 export interface NEREntity {
   word: string;
@@ -52,7 +52,10 @@ export async function extractNEREntities(text: string): Promise<NEREntity[]> {
   if (!model) return [];
 
   try {
-    const results = await model(text, { aggregation_strategy: 'simple' });
+    const results = await (model as unknown as (t: string, o?: Record<string, unknown>) => Promise<unknown>)(
+      text,
+      { aggregation_strategy: 'simple' },
+    );
     return (results as any[]).map((r) => ({
       word: r.word,
       entity_group: r.entity_group,

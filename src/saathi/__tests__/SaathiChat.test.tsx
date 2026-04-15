@@ -52,17 +52,20 @@ vi.mock('../engine/slotMachine', () => {
     requiredFilledPercentage: 0,
     isComplete: false,
   });
+  const step = (prev: any, text: string) => ({
+    ...prev,
+    messages: [
+      ...prev.messages,
+      { id: msgId(), role: 'user', text, timestamp: Date.now() },
+      { id: msgId(), role: 'saathi', text: `Got it: ${text}`, timestamp: Date.now() },
+    ],
+    filledPercentage: prev.filledPercentage + 5,
+    requiredFilledPercentage: (prev.requiredFilledPercentage ?? 0) + 5,
+  });
   return {
     createConversation,
-    processUserInput: (prev: any, text: string) => ({
-      ...prev,
-      messages: [
-        ...prev.messages,
-        { id: msgId(), role: 'user', text, timestamp: Date.now() },
-        { id: msgId(), role: 'saathi', text: `Got it: ${text}`, timestamp: Date.now() },
-      ],
-      filledPercentage: prev.filledPercentage + 5,
-    }),
+    processUserInput: step,
+    processUserInputAsync: (prev: any, text: string) => Promise.resolve(step(prev, text)),
     loadFromStorage: () => null,
     clearStorage: vi.fn(),
   };
@@ -125,18 +128,22 @@ describe('SaathiChat', () => {
     expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument();
   });
 
-  it('sends message on form submit and shows reply after typing delay', () => {
+  it('sends message on form submit and shows reply after typing delay', async () => {
     render(<SaathiChat />);
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'My name is Rahul' } });
     fireEvent.submit(input.closest('form')!);
 
-    // User message appears immediately
+    // User message appears immediately (pending bubble)
     expect(screen.getByText('My name is Rahul')).toBeInTheDocument();
 
-    // Saathi reply appears after typing delay
-    act(() => {
-      vi.advanceTimersByTime(1000);
+    // Flush the async processUserInputAsync promise resolution
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    // Then advance past the 400-800ms typing delay
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
     });
     expect(screen.getByText('Got it: My name is Rahul')).toBeInTheDocument();
   });

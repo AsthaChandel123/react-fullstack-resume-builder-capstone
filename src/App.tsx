@@ -56,24 +56,40 @@ function Loading() {
 }
 
 export function App() {
-  // Background model download -- never blocks the app
+  // Background model download — never blocks the app.
+  // Capability-gated: only tier-2+ devices attempt the 1.5GB Gemma fetch.
+  // The actual model-ready flag is owned by webllm.ts via webllmStatus —
+  // App.tsx must NOT claim readiness before the model finishes loading.
   useEffect(() => {
-    if (localStorage.getItem('resumeai_ai_ready') === '1') return;
+    localStorage.setItem('resumeai_ai_level', 'L2'); // baseline always available
 
-    // Set baseline: Tier 0+1 always available (no model needed)
-    localStorage.setItem('resumeai_ai_ready', '1');
-    localStorage.setItem('resumeai_ai_level', 'L2');
+    let cancelled = false;
+    (async () => {
+      const { detectCapabilities } = await import('./ai/models/capabilities');
+      const caps = await detectCapabilities();
+      if (cancelled) return;
+      if (!caps.canRunL3) return; // tier-0/1 device — skip the heavy preload
+      if (!caps.isOnline) return; // offline — can't download
 
-    // Try loading Gemma 4 in background (progressive enhancement)
-    import('./ai/models/webllm').then(({ preloadModel }) => {
+      const { isModelReady } = await import('./ai/models/webllmStatus');
+      if (isModelReady()) {
+        localStorage.setItem('resumeai_ai_level', 'L3');
+        return;
+      }
+
+      const { preloadModel } = await import('./ai/models/webllm');
       preloadModel((report) => {
-        if (report.progress >= 1) {
+        if (report.progress >= 1 && !cancelled) {
           localStorage.setItem('resumeai_ai_level', 'L3');
         }
       }).catch(() => {
         // Model download failed silently. L2 remains active.
       });
-    });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

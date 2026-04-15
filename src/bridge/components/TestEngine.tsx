@@ -130,11 +130,23 @@ export function TestEngine({ criteriaCode }: Props) {
         }
 
         const normalized = normalizeFirestore(snap.data()) as BridgeCriteria;
+        if (!normalized.expiresAt || !normalized.createdAt) {
+          if (!cancelled) {
+            setError('This test is missing required metadata and cannot be taken. Please contact the employer.');
+            setPhase('error');
+          }
+          return;
+        }
+        if (normalized.expiresAt.getTime() <= Date.now()) {
+          if (!cancelled) {
+            setError('This test has expired and is no longer accepting submissions.');
+            setPhase('error');
+          }
+          return;
+        }
         const data: BridgeCriteria = {
           ...normalized,
           shortCode: criteriaCode,
-          createdAt: normalized.createdAt ?? new Date(),
-          expiresAt: normalized.expiresAt ?? new Date(Date.now() + 90 * 86_400_000),
         };
         if (!cancelled) {
           if (data.status && data.status !== 'active') {

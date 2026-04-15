@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractEntities, type ExtractedEntities } from '../engine/entityExtractor';
+import { extractEntities } from '../engine/entityExtractor';
 
 describe('entityExtractor', () => {
   it('extracts email addresses', () => {

@@ -1,7 +1,24 @@
 // /mnt/experiments/astha-resume/src/saathi/engine/aiExtractor.ts
-// Pure LLM extraction. No regex. Gemma primary, Gemini backup.
+// Local-first LLM extraction:
+//   1. On-device Gemma 4 E2B (when the model is downloaded and device is capable)
+//   2. Cloud Gemma (via Google Generative Language API) as primary cloud path
+//   3. Cloud Gemini 2.5 Flash as cloud backup
+//
+// The on-device path is tried whenever webllmStatus.isModelReady() reports
+// the model is cached locally. Failures fall through to the cloud path
+// only when an API key is present.
 
 import { SAATHI_MODELS, modelEndpoint, supportsJsonMode, supportsResponseSchema } from './modelConfig';
+import { canExtractLocally, extractLocally } from './localExtractor';
+
+export type ExtractionSource = 'local-gemma' | 'cloud-gemma' | 'cloud-gemini' | 'none';
+
+let lastSource: ExtractionSource = 'none';
+
+/** Last successful extraction path. Used by UI to show which model answered. */
+export function getLastExtractionSource(): ExtractionSource {
+  return lastSource;
+}
 
 export interface AIExtractedData {
   name?: string;
@@ -186,10 +203,6 @@ export async function extractWithAI(
   missingSlots: string[],
   apiKey: string,
 ): Promise<AIExtractedData> {
-  if (!apiKey) {
-    throw new Error('Gemini API key missing');
-  }
-
   const prompt = buildExtractionPrompt(
     userMessage,
     conversationContext,
@@ -198,13 +211,38 @@ export async function extractWithAI(
     missingSlots,
   );
 
+  // Tier 1: on-device Gemma 4 E2B (true offline, private)
+  if (canExtractLocally()) {
+    try {
+      const result = await extractLocally(prompt);
+      lastSource = 'local-gemma';
+      return result;
+    } catch (localErr) {
+      if (import.meta.env?.DEV) {
+        console.warn('[saathi] local extract failed, trying cloud', localErr);
+      }
+    }
+  }
+
+  // Tier 2: cloud Gemma (primary) then Gemini (backup)
+  if (!apiKey) {
+    lastSource = 'none';
+    throw new Error(
+      'On-device model unavailable and no API key configured. Set VITE_GEMINI_API_KEY or let the device download Gemma.',
+    );
+  }
+
   try {
-    return await callExtractModel(SAATHI_MODELS.primary, prompt, apiKey);
+    const result = await callExtractModel(SAATHI_MODELS.primary, prompt, apiKey);
+    lastSource = 'cloud-gemma';
+    return result;
   } catch (primaryErr) {
     if (import.meta.env?.DEV) {
       console.warn('[saathi] primary extract failed, falling back', primaryErr);
     }
-    return await callExtractModel(SAATHI_MODELS.backup, prompt, apiKey);
+    const result = await callExtractModel(SAATHI_MODELS.backup, prompt, apiKey);
+    lastSource = 'cloud-gemini';
+    return result;
   }
 }
 

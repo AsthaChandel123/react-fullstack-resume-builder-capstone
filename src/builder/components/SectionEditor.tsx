@@ -15,8 +15,11 @@ function createBlankEntry(sectionType: string): Entry {
     projects: ['name', 'tech', 'description', 'url'],
     certifications: ['name', 'issuer', 'date', 'url'],
     extracurricular: ['role', 'org', 'duration', 'description'],
+    // Custom sections get a generic title+subtitle+duration shape so the
+    // entry is immediately editable instead of rendering zero inputs.
+    custom: ['title', 'subtitle', 'duration'],
   };
-  for (const k of fieldKeys[sectionType] ?? []) {
+  for (const k of fieldKeys[sectionType] ?? fieldKeys.custom) {
     fields[k] = '';
   }
   return { id: uuid(), fields, bullets: [] };

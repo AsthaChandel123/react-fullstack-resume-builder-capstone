@@ -243,7 +243,7 @@ function fillSlotsFromEntities(
   slots: SlotState,
   entities: ExtractedEntities,
   rawText: string,
-  prevState: ConversationState,
+  _prevState: ConversationState,
 ): void {
   // Email
   if (entities.email && !slots.values.has('personal.email')) {
@@ -462,12 +462,6 @@ function fillSlotsFromEntities(
  * then update flat slots with the new entry's data.
  */
 function commitCurrentExperienceToArray(slots: SlotState): void {
-  const company = slots.values.get('experience[].company') as string || '';
-  const role = slots.values.get('experience[].role') as string || '';
-  const dates = slots.values.get('experience[].dates') as string || '';
-  const bullets = slots.values.get('experience[].bullets[]');
-
-  // Check if already committed (first entry is already in array from initial add)
   // Clear flat slots so next entry can fill them
   slots.values.delete('experience[].role' as SlotId);
   slots.values.delete('experience[].dates' as SlotId);
@@ -513,7 +507,7 @@ function updatePhase(slots: SlotState): void {
 
 function generateResponse(
   slots: SlotState,
-  entities: ExtractedEntities | null,
+  _entities: ExtractedEntities | null,
   prevState: ConversationState,
 ): ChatMessage {
   const name = (slots.values.get('personal.name') as string) || '';
