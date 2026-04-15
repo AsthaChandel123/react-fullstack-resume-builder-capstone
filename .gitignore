@@ -28,3 +28,10 @@ test-*.png
 firebase/.firebase/
 firebase/*.bak
 firebase/*.deploy
+
+# Local playwright test scripts
+mayhem.mjs
+bridge-e2e.mjs
+debug-*.mjs
+human-test.mjs
+playwright-test.mjs
