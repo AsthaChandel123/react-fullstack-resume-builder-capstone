@@ -1,12 +1,15 @@
 // /mnt/experiments/astha-resume/src/saathi/engine/aiResponseGenerator.ts
+// Pure LLM response generation. Gemma primary, Gemini backup.
 
 import type { AIExtractedData } from './aiExtractor';
-import { getResponse, type ResponseKey } from './responseBank';
+import { SAATHI_MODELS, modelEndpoint } from './modelConfig';
 
-const GEMINI_ENDPOINT = (apiKey: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+const RESPONSE_TIMEOUT_MS = 15_000;
 
-const RESPONSE_TIMEOUT_MS = 10_000;
+export interface ResponseTurn {
+  role: 'user' | 'saathi';
+  text: string;
+}
 
 function buildResponsePrompt(
   extractedData: AIExtractedData,
@@ -14,49 +17,103 @@ function buildResponsePrompt(
   filledSlots: string[],
   missingSlots: string[],
   userName: string,
+  history: ResponseTurn[],
 ): string {
   const extractedSummary = extractedData.rawMeaning || JSON.stringify(extractedData);
   const filledList = filledSlots.length > 0 ? filledSlots.join(', ') : 'nothing yet';
   const missingList = missingSlots.length > 0 ? missingSlots.join(', ') : 'nothing more needed';
 
-  return `You are Saathi, a warm, encouraging career companion helping an Indian user build their resume. You speak naturally, like a supportive friend. Never robotic. Never corporate.
+  const historyText = history
+    .slice(-12)
+    .map((t) => `${t.role === 'user' ? 'User' : 'Saathi'}: ${t.text}`)
+    .join('\n');
 
-The user just shared: ${extractedSummary}
+  const alreadyAsked = history
+    .filter((t) => t.role === 'saathi')
+    .map((t) => `- ${t.text}`)
+    .join('\n');
 
-Current phase: ${currentPhase}
+  return `You are Saathi, a warm, supportive resume companion for Indian users. You speak naturally, like a friend. Never robotic, never corporate, never use emojis.
+
+Conversation so far:
+${historyText}
+
+The user just said: ${extractedSummary}
+Phase: ${currentPhase}
 Already collected: ${filledList}
 Still needed: ${missingList}
 User's name: ${userName || 'unknown'}
 
-Rules:
-- Generate a natural, conversational response. 1-2 sentences max. Be warm but concise.
-- If they shared education info, acknowledge it specifically (e.g., "B.Tech from Shoolini, nice!").
-- If they shared their name, welcome them warmly.
-- If they shared work experience, acknowledge the company/role.
-- If they seem confused (isConfusion), explain what you need in simple terms. Example: "No worries! I just need to know where you studied. Like your college name and what degree you did."
-- If they're saying they don't have something (isNegation), acknowledge it and move on: "That's totally fine! Let's move to the next section."
-- If they're off-topic (isOffTopic), gently redirect: "Haha, I wish I could help with that! But let's get your resume sorted first. [ask for what you need]"
-- Match their language style. If they're speaking Hinglish, respond in Hinglish. If formal English, match that.
-- After acknowledging, ask for the next missing item naturally. Don't just list what you need.
-- If nothing is missing, celebrate and tell them the resume is ready.
-- Never use emojis. Keep it plain text.
-- Do NOT repeat what they said back verbatim. Acknowledge with a fresh phrasing.`;
+CRITICAL RULES:
+1. NEVER repeat a question you already asked in the conversation above. Read the history carefully. If you see you already asked "where are you based?" do NOT ask it again. Vary wording or move on to a different missing field.
+2. Acknowledge what the user just shared with a fresh phrasing. Do not echo their words verbatim.
+3. After acknowledging, ask for the NEXT missing item from the "Still needed" list. Pick the most natural next field for the current phase.
+4. Keep it 1-2 short sentences. Be warm but concise.
+5. If the user seems confused (isConfusion), explain in simple plain words what you need. Example: "No worries! I just need to know which city you live in."
+6. If they're saying they don't have something (isNegation), accept it and immediately move on to the next topic.
+7. If they're off-topic (isOffTopic), gently redirect: "Haha, let's get your resume sorted first." then ask the next missing item.
+8. Match their language register. Hinglish reply -> Hinglish answer. Formal English -> formal English.
+9. If "Still needed" is empty, celebrate: tell them their resume is ready.
+10. Plain text only. No markdown, no emojis, no bullet points, no quotation marks around your answer.
+11. Never start with "Got it" or "Okay" twice in a row. Vary openings.
+
+Questions you have already asked (do NOT repeat any of these verbatim):
+${alreadyAsked || '(none yet)'}
+
+Reply now with one short, natural Saathi message.`;
 }
 
-/**
- * Generate a natural, contextual Saathi response using Gemini 2.5 Flash.
- * Falls back to template responseBank on failure.
- */
+async function callGenerateModel(
+  model: string,
+  prompt: string,
+  apiKey: string,
+): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), RESPONSE_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(modelEndpoint(model, apiKey), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+          ...(model.startsWith('gemini-') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Generate HTTP ${response.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text || text.trim().length === 0) {
+      throw new Error('Generate: empty response');
+    }
+
+    return text.trim().replace(/^\*+|\*+$/g, '').trim();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function generateSaathiResponse(
   extractedData: AIExtractedData,
   currentPhase: string,
   filledSlots: string[],
   missingSlots: string[],
   userName: string,
+  history: ResponseTurn[],
   apiKey: string,
 ): Promise<string> {
   if (!apiKey) {
-    return templateFallback(currentPhase, userName, missingSlots);
+    throw new Error('Gemini API key missing');
   }
 
   const prompt = buildResponsePrompt(
@@ -65,64 +122,15 @@ export async function generateSaathiResponse(
     filledSlots,
     missingSlots,
     userName,
+    history,
   );
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), RESPONSE_TIMEOUT_MS);
-
   try {
-    const response = await fetch(GEMINI_ENDPOINT(apiKey), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 256,
-        },
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      return templateFallback(currentPhase, userName, missingSlots);
+    return await callGenerateModel(SAATHI_MODELS.primary, prompt, apiKey);
+  } catch (primaryErr) {
+    if (import.meta.env?.DEV) {
+      console.warn('[saathi] primary generate failed, falling back', primaryErr);
     }
-
-    const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text || text.trim().length === 0) {
-      return templateFallback(currentPhase, userName, missingSlots);
-    }
-
-    // Strip any markdown formatting the model might add
-    return text.trim().replace(/^\*+|\*+$/g, '').trim();
-  } catch {
-    return templateFallback(currentPhase, userName, missingSlots);
-  } finally {
-    clearTimeout(timeout);
+    return await callGenerateModel(SAATHI_MODELS.backup, prompt, apiKey);
   }
-}
-
-/**
- * Fallback: use existing template responseBank when API is unavailable.
- */
-function templateFallback(
-  currentPhase: string,
-  userName: string,
-  missingSlots: string[],
-): string {
-  const vars = { name: userName, location: '', degree: '', institution: '', year: '', field: '', company: '', role: '', skills_list: '', project: '' };
-
-  const phaseKeyMap: Record<string, ResponseKey> = {
-    warmup: 'greeting',
-    education: 'education.ask',
-    experience: 'experience.ask',
-    projects: 'projects.ask',
-    skills: 'skills.confirm',
-    wrapup: 'wrapup.contact_ask',
-    review: 'review.show',
-  };
-
-  const key = phaseKeyMap[currentPhase] || 'clarification';
-  return getResponse(key, vars);
 }

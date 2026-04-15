@@ -1,11 +1,8 @@
 // /mnt/experiments/astha-resume/src/saathi/engine/aiExtractor.ts
+// Pure LLM extraction. No regex. Gemma primary, Gemini backup.
 
-import { extractEntities, type ExtractedEntities } from './entityExtractor';
+import { SAATHI_MODELS, modelEndpoint, supportsJsonMode, supportsResponseSchema } from './modelConfig';
 
-/**
- * AI-extracted resume data from natural user speech.
- * Handles Hinglish, lazy input, confusion, negation, off-topic.
- */
 export interface AIExtractedData {
   name?: string;
   email?: string;
@@ -24,13 +21,9 @@ export interface AIExtractedData {
   skills?: string[];
   linkedin?: string;
   github?: string;
-  /** User is saying they don't have something: "nahi hai projects" */
   isNegation?: boolean;
-  /** User is confused or asking a question: "what do you mean?" */
   isConfusion?: boolean;
-  /** User went off-topic: "what's the weather?" */
   isOffTopic?: boolean;
-  /** AI's plain-language understanding of what the user meant */
   rawMeaning?: string;
 }
 
@@ -62,150 +55,162 @@ const AI_EXTRACTION_SCHEMA = {
   required: ['rawMeaning'] as const,
 };
 
-const GEMINI_ENDPOINT = (apiKey: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-const EXTRACT_TIMEOUT_MS = 10_000;
+const EXTRACT_TIMEOUT_MS = 15_000;
 
 function buildExtractionPrompt(
   userMessage: string,
   conversationContext: string,
   currentPhase: string,
+  lastSaathiQuestion: string,
+  missingSlots: string[],
 ): string {
-  return `You are Saathi, a resume-building assistant for Indian users. The user is speaking naturally, possibly in Hindi, Hinglish, Tamil, Telugu, Kannada, Bengali, Marathi, Gujarati, Punjabi, or any Indian language mixed with English.
+  return `You extract structured resume data from a user's natural-language reply for Saathi, a resume assistant for Indian users. Users may speak in English, Hindi, Hinglish, Tamil, Telugu, Kannada, Bengali, Marathi, Gujarati, Punjabi, or any mix.
 
-Extract structured resume data from their message. Return JSON with whatever you can extract.
-
-Current phase: ${currentPhase}
-Recent conversation:
+Conversation so far:
 ${conversationContext}
 
-User message: "${userMessage}"
+Saathi's last question: "${lastSaathiQuestion}"
+Currently missing fields: ${missingSlots.join(', ') || 'none'}
+Current phase: ${currentPhase}
 
-Rules:
-- If user says their name in ANY format (mera naam X hai, I'm X, call me X, just a bare name), extract it. Proper-case it: "rahul sharma" -> "Rahul Sharma".
-- For location, accept city names in any language. "Solan mein rehta hoon" -> location: "Solan". "Delhi se hoon" -> location: "Delhi".
-- For degree, normalize: "btech" -> "B.Tech", "mtech" -> "M.Tech", "bsc" -> "B.Sc", "mba" -> "MBA". "cse" or "cs" -> field: "Computer Science".
-- For institution, extract university/college names even if abbreviated or in Hindi.
-- For year, extract graduation year from any format: "2026", "passing out 2026", "final year" (infer if possible).
-- For skills, extract ALL mentioned technologies, languages, tools. "react, node, mongo" -> ["React", "Node.js", "MongoDB"].
-- For experience bullets, if the user describes what they did at work, extract as bullets.
-- If user is confused or asking a question ("kya matlab?", "what do you mean?", "samajh nahi aaya"), set isConfusion=true and rawMeaning to what they seem confused about.
-- If user says they don't have something ("nahi hai", "no experience", "skip", "I don't have projects"), set isNegation=true.
-- If user is off-topic ("what's the weather?", "tell me a joke", "kya time hua?"), set isOffTopic=true.
-- rawMeaning: always include a brief English summary of what the user meant.
-- Only set fields you can confidently extract. Leave others out entirely.
-- For lazy/terse input like "btech cse, shoolini, 2026", extract: degree="B.Tech", field="Computer Science", institution="Shoolini", year="2026".`;
+User's new reply: "${userMessage}"
+
+CRITICAL RULES:
+1. The user's reply most likely answers Saathi's last question. A bare token like "Shimla" answering "where are you based?" means location="Shimla".
+2. If the question asks for a name and user replies "Rahul" or "main rahul", set name="Rahul".
+3. Accept bare answers without prepositions.
+4. Proper-case names and locations: "rahul sharma" -> "Rahul Sharma", "shimla" -> "Shimla".
+5. Normalize degrees: btech->B.Tech, mtech->M.Tech, bsc->B.Sc, msc->M.Sc, mba->MBA, bca->BCA, mca->MCA, phd->PhD.
+6. Normalize fields: cse/cs->Computer Science, it->Information Technology, ece->Electronics and Communication, ai->Artificial Intelligence, ml->Machine Learning, ds->Data Science.
+7. For lazy combined input "btech cse shoolini 2026" extract: degree=B.Tech, field=Computer Science, institution=Shoolini, year=2026.
+8. Skills: extract every technology, language, or tool mentioned. Normalize: react->React, node->Node.js, mongo->MongoDB, py->Python, js->JavaScript.
+9. If user clearly says they don't have something ("nahi hai", "no experience", "skip", "don't have", "none"), set isNegation=true.
+10. If user is confused ("kya?", "matlab?", "what do you mean?", "samajh nahi aaya"), set isConfusion=true.
+11. If user is off-topic ("weather kaisa hai?", "tell me a joke"), set isOffTopic=true.
+12. ALWAYS include rawMeaning: a one-sentence English summary of what the user actually said.
+13. Only set fields you are confident about. Leave others null. Do NOT invent data.
+14. If the reply is a single ambiguous token, use Saathi's last question to decide which field it answers.
+
+Output ONLY a single JSON object. No prose, no markdown fences, no commentary.
+
+JSON schema (use null for unknown fields, omit fields you cannot confidently extract):
+{
+  "name": string|null,
+  "email": string|null,
+  "phone": string|null,
+  "location": string|null,
+  "targetRole": string|null,
+  "degree": string|null,
+  "institution": string|null,
+  "year": string|null,
+  "field": string|null,
+  "gpa": string|null,
+  "company": string|null,
+  "role": string|null,
+  "dates": string|null,
+  "bullets": string[]|null,
+  "skills": string[]|null,
+  "linkedin": string|null,
+  "github": string|null,
+  "isNegation": boolean|null,
+  "isConfusion": boolean|null,
+  "isOffTopic": boolean|null,
+  "rawMeaning": string
+}`;
 }
 
-/**
- * Extract structured resume data from natural user speech using Gemini 2.5 Flash.
- * Falls back to regex-based extractEntities on any failure.
- */
-export async function extractWithAI(
-  userMessage: string,
-  conversationContext: string,
-  currentPhase: string,
+function stripJsonFence(text: string): string {
+  const trimmed = text.trim();
+  const fenceStart = trimmed.indexOf('{');
+  const fenceEnd = trimmed.lastIndexOf('}');
+  if (fenceStart === -1 || fenceEnd === -1 || fenceEnd < fenceStart) {
+    throw new Error('No JSON object found in model output');
+  }
+  return trimmed.slice(fenceStart, fenceEnd + 1);
+}
+
+async function callExtractModel(
+  model: string,
+  prompt: string,
   apiKey: string,
 ): Promise<AIExtractedData> {
-  if (!apiKey) {
-    return regexFallback(userMessage);
-  }
-
-  const prompt = buildExtractionPrompt(userMessage, conversationContext, currentPhase);
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), EXTRACT_TIMEOUT_MS);
 
+  const generationConfig: Record<string, unknown> = {
+    temperature: 0.1,
+    maxOutputTokens: 2048,
+    ...(model.startsWith('gemini-') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+  };
+  if (supportsJsonMode(model)) {
+    generationConfig.responseMimeType = 'application/json';
+  }
+  if (supportsResponseSchema(model)) {
+    generationConfig.responseSchema = AI_EXTRACTION_SCHEMA;
+  }
+
   try {
-    const response = await fetch(GEMINI_ENDPOINT(apiKey), {
+    const response = await fetch(modelEndpoint(model, apiKey), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 2048,
-          responseMimeType: 'application/json',
-          responseSchema: AI_EXTRACTION_SCHEMA,
-        },
+        generationConfig,
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      return regexFallback(userMessage);
+      const body = await response.text().catch(() => '');
+      throw new Error(`Extract HTTP ${response.status}: ${body.slice(0, 200)}`);
     }
 
     const data = await response.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
-      return regexFallback(userMessage);
+      throw new Error('Extract: empty response');
     }
 
-    const parsed: AIExtractedData = JSON.parse(text);
-    return parsed;
-  } catch {
-    return regexFallback(userMessage);
+    const jsonText = supportsResponseSchema(model) ? text : stripJsonFence(text);
+    return JSON.parse(jsonText) as AIExtractedData;
   } finally {
     clearTimeout(timeout);
   }
 }
 
-/**
- * Convert regex ExtractedEntities into AIExtractedData shape for fallback.
- */
-function regexFallback(userMessage: string): AIExtractedData {
-  const entities = extractEntities(userMessage);
-  const result: AIExtractedData = {
-    rawMeaning: userMessage,
-  };
-
-  if (entities.email) result.email = entities.email;
-  if (entities.phone) result.phone = entities.phone;
-  if (entities.degree) result.degree = entities.degree;
-  if (entities.gpa) result.gpa = entities.gpa;
-  if (entities.linkedin) result.linkedin = entities.linkedin;
-  if (entities.github) result.github = entities.github;
-  if (entities.skills.length > 0) result.skills = entities.skills;
-
-  // Attempt name extraction via regex
-  const nameMatch =
-    userMessage.match(/(?:my name is|i'm|i am|call me|this is)\s+([a-z]+(?:\s[a-z]+)?)\b/i) ||
-    userMessage.match(/(?:mera naam|main)\s+([a-z]+(?:\s[a-z]+)?)(?:\s+(?:hai|hoon|hu))?/i);
-  if (nameMatch) {
-    const raw = nameMatch[1].trim();
-    result.name = raw
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
+export async function extractWithAI(
+  userMessage: string,
+  conversationContext: string,
+  currentPhase: string,
+  lastSaathiQuestion: string,
+  missingSlots: string[],
+  apiKey: string,
+): Promise<AIExtractedData> {
+  if (!apiKey) {
+    throw new Error('Gemini API key missing');
   }
 
-  // Location
-  const locMatch = userMessage.match(
-    /(?:from|in|at|based in|located in|live in|living in|se hoon|mein rehta|mein rehti|se|mein)\s+([A-Z][a-zA-Z]+(?:[,\s]+[A-Z][a-zA-Z]+)*)/i,
+  const prompt = buildExtractionPrompt(
+    userMessage,
+    conversationContext,
+    currentPhase,
+    lastSaathiQuestion,
+    missingSlots,
   );
-  if (locMatch) result.location = locMatch[1].trim();
 
-  // Year
-  if (entities.dates.length > 0) {
-    const years = entities.dates.map(Number).filter((y) => y >= 1990 && y <= 2035);
-    if (years.length > 0) result.year = String(Math.max(...years));
+  try {
+    return await callExtractModel(SAATHI_MODELS.primary, prompt, apiKey);
+  } catch (primaryErr) {
+    if (import.meta.env?.DEV) {
+      console.warn('[saathi] primary extract failed, falling back', primaryErr);
+    }
+    return await callExtractModel(SAATHI_MODELS.backup, prompt, apiKey);
   }
-
-  return result;
 }
 
-/**
- * Get API key from env or localStorage.
- */
 export function getGeminiApiKey(): string {
-  // Vite env var
   const envKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
   if (envKey) return envKey;
-
-  // localStorage fallback
   try {
     return localStorage.getItem('gemini_api_key') || '';
   } catch {

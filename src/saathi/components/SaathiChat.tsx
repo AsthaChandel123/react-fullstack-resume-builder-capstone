@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { useResumeStore } from '@/store/resumeStore';
 import {
   createConversation,
-  processUserInput,
   processUserInputAsync,
   loadFromStorage,
   clearStorage,
@@ -240,88 +239,51 @@ export function SaathiChat() {
 
       setInputValue('');
 
-      const apiKey = getGeminiApiKey();
-      const useAI = !!apiKey;
+      // Always use the AI path. Show thinking indicator, await result.
+      setIsThinking(true);
 
-      if (useAI) {
-        // Async AI path: show thinking indicator, await result
-        setIsThinking(true);
+      const userMsg: ChatMessage = {
+        id: `msg-pending-${Date.now()}`,
+        role: 'user',
+        text: trimmed,
+        timestamp: Date.now(),
+      };
+      setDisplayedMessages((prev) => [...prev, userMsg]);
 
-        // Add user message to display immediately
-        const userMsg: ChatMessage = {
-          id: `msg-pending-${Date.now()}`,
-          role: 'user',
-          text: trimmed,
+      try {
+        const prev = conversation;
+        const next = await processUserInputAsync(prev, trimmed);
+        syncSlotsToStore(next.slots);
+
+        const milestone = crossedMilestone(prev.requiredFilledPercentage, next.requiredFilledPercentage);
+        if (milestone) {
+          const name = (next.slots.values.get('personal.name') as string) || '';
+          const encouragementText = milestone === 100
+            ? '\uD83C\uDF89 You did it! Your resume is complete!'
+            : getResponse('encouragement', { name });
+
+          const encouragementMsg: ChatMessage = {
+            id: systemMsgId(),
+            role: 'saathi',
+            text: encouragementText,
+            timestamp: Date.now(),
+          };
+
+          setConversation({ ...next, messages: [...next.messages, encouragementMsg] });
+        } else {
+          setConversation(next);
+        }
+      } catch (err) {
+        const errMsg: ChatMessage = {
+          id: systemMsgId(),
+          role: 'saathi',
+          text: "I'm having trouble reaching the AI service. Please try again in a moment.",
           timestamp: Date.now(),
         };
-        setDisplayedMessages((prev) => [...prev, userMsg]);
-
-        try {
-          const prev = conversation;
-          const next = await processUserInputAsync(prev, trimmed);
-          syncSlotsToStore(next.slots);
-
-          // Inject encouragement when crossing a milestone threshold
-          const milestone = crossedMilestone(prev.requiredFilledPercentage, next.requiredFilledPercentage);
-          if (milestone) {
-            const name = (next.slots.values.get('personal.name') as string) || '';
-            const encouragementText = milestone === 100
-              ? '\uD83C\uDF89 You did it! Your resume is complete!'
-              : getResponse('encouragement', { name });
-
-            const encouragementMsg: ChatMessage = {
-              id: systemMsgId(),
-              role: 'saathi',
-              text: encouragementText,
-              timestamp: Date.now(),
-            };
-
-            const withEncouragement = {
-              ...next,
-              messages: [...next.messages, encouragementMsg],
-            };
-            setConversation(withEncouragement);
-          } else {
-            setConversation(next);
-          }
-        } catch {
-          // AI failed, fall back to sync
-          setConversation((prev) => {
-            const next = processUserInput(prev, trimmed);
-            syncSlotsToStore(next.slots);
-            return next;
-          });
-        } finally {
-          setIsThinking(false);
-        }
-      } else {
-        // Sync regex path (no API key)
-        setConversation((prev) => {
-          const next = processUserInput(prev, trimmed);
-          syncSlotsToStore(next.slots);
-
-          const milestone = crossedMilestone(prev.requiredFilledPercentage, next.requiredFilledPercentage);
-          if (milestone) {
-            const name = (next.slots.values.get('personal.name') as string) || '';
-            const encouragementText = milestone === 100
-              ? '\uD83C\uDF89 You did it! Your resume is complete!'
-              : getResponse('encouragement', { name });
-
-            const encouragementMsg: ChatMessage = {
-              id: systemMsgId(),
-              role: 'saathi',
-              text: encouragementText,
-              timestamp: Date.now(),
-            };
-
-            return {
-              ...next,
-              messages: [...next.messages, encouragementMsg],
-            };
-          }
-
-          return next;
-        });
+        setConversation((prev) => ({ ...prev, messages: [...prev.messages, errMsg] }));
+        if (import.meta.env?.DEV) console.error('[saathi] AI path failed', err);
+      } finally {
+        setIsThinking(false);
       }
 
       inputRef.current?.focus();
@@ -417,15 +379,15 @@ export function SaathiChat() {
             whiteSpace: 'nowrap',
           }}
           title={getGeminiApiKey()
-            ? 'Gemini 2.5 Flash processes your messages for better understanding'
-            : 'Regex-only mode. Add VITE_GEMINI_API_KEY for AI understanding.'
+            ? 'Gemma (primary) with Gemini 2.5 Flash backup'
+            : 'AI key missing. Set VITE_GEMINI_API_KEY.'
           }
         >
           <span
             className="inline-block h-1.5 w-1.5 rounded-full"
             style={{ background: getGeminiApiKey() ? '#818cf8' : '#eab308' }}
           />
-          {getGeminiApiKey() ? 'Gemini AI' : 'Regex'}
+          {getGeminiApiKey() ? 'Gemma + Gemini' : 'No AI key'}
         </div>
         <div className="flex-1">
           <SlotProgress
