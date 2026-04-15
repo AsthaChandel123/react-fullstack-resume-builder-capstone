@@ -15,10 +15,10 @@ AI-powered career platform with three interconnected systems: a conversational r
 A slot-filling chatbot that builds your resume through conversation instead of forms.
 
 - **23 data slots** across 7 phases (warmup, education, experience, projects, skills, wrapup, review). 8 required, 15 preferred.
-- **Dual processing mode:** Regex-only (works offline, zero network) or Gemini 2.5 Flash-enhanced (understands Hindi, Hinglish, Tamil, Telugu, Kannada, Bengali, Marathi, Gujarati, Punjabi).
+- **Pure LLM understanding.** Gemma 3 27b (primary) with Gemini 2.5 Flash (backup) — no regex extraction. Handles Hindi, Hinglish, Tamil, Telugu, Kannada, Bengali, Marathi, Gujarati, Punjabi, and bare one-word replies like "Shimla" by reading Saathi's last question as context.
+- **Single source of truth for models:** [`src/saathi/engine/modelConfig.ts`](src/saathi/engine/modelConfig.ts). Allowed values: Gemma 3/4 family or Gemini 2.5 / 3.
+- **No-repeat conversation:** the response generator gets the full chat history with an explicit instruction never to re-ask a question already answered, fixing the "asks for place again and again" loop.
 - **Voice input** via Web Speech API with automatic script detection across 10 Unicode blocks (Latin, Devanagari, Tamil, Bengali, Telugu, Malayalam, Gujarati, Kannada, Punjabi, Odia). Detects dominant script and sets BCP-47 lang tag accordingly.
-- **Entity extraction:** Regex layer detects emails, Indian phone numbers, dates, GPAs (fraction/CGPA/percentage), degrees, LinkedIn/GitHub URLs, 60+ skill keywords. Enhanced mode adds DistilBERT-NER (Xenova/distilbert-NER, INT8, 67MB) for PER/ORG/LOC entities.
-- **241 response templates** across 24 conversation keys, with rotating variant selection and template variable interpolation (`{{name}}`, `{{degree}}`, etc.).
 - **Session persistence** in localStorage. Resumes mid-conversation where you left off.
 - Outputs a complete `Resume` object compatible with the form builder and all 4 templates.
 
@@ -148,7 +148,7 @@ Anti-OCR: Test options rendered with font-weight 395-410 and letter-spacing 0.00
 |-------|-------------|
 | Frontend | React 19.1, TypeScript 5.8, Vite 6.3, Tailwind CSS 4.1, Zustand 5 |
 | AI/ML (in-browser) | Gemma 4 E2B via Transformers.js v4, ONNX E5-small-v2 via onnxruntime-web, DistilBERT-NER, TF-IDF, Jaccard |
-| AI/ML (cloud fallback) | Gemini 2.5 Flash API, Gemini 2.0 Flash (question generation) |
+| AI/ML (cloud) | Gemma 3 27b (Saathi primary), Gemini 2.5 Flash (Saathi backup + L4 employer fallback + adaptive question generation) |
 | Backend | Firebase Auth (anon + email + Google), Firestore (8 collections), Cloud Functions v2 (Node 20) |
 | Testing | Vitest 3.1, React Testing Library 16.3, 516 tests across 27 test files |
 | PWA | Workbox via vite-plugin-pwa, selective caching (skips >500KB model chunks) |
@@ -178,7 +178,7 @@ src/
     scoring/        Jaccard, TF-IDF, distance decay, GPA, VALUE rubric
     taxonomy/       189-skill graph with aliases and adjacency
   saathi/
-    engine/         Slot machine, entity extraction, NER model, AI extractor, response bank, resume generator
+    engine/         Slot machine, AI extractor (Gemma+Gemini), AI response generator, model config, resume generator
     components/     Chat UI, voice button, progress bar
     voice/          Speech input (Web Speech API), language/script detection
   bridge/
@@ -237,7 +237,7 @@ VITE_FIREBASE_PROJECT_ID
 VITE_FIREBASE_STORAGE_BUCKET
 VITE_FIREBASE_MESSAGING_SENDER_ID
 VITE_FIREBASE_APP_ID
-VITE_GEMINI_API_KEY              # Optional: enables L4 cloud fallback + Saathi AI mode
+VITE_GEMINI_API_KEY              # Required for Saathi (Gemma + Gemini) and L4 employer fallback
 ```
 
 ### Deployment

@@ -3,8 +3,8 @@ const sections = [
     title: 'Saathi Conversation Engine',
     items: [
       'Slot-filling state machine (23 slots, 7 phases)',
-      '241 response templates, warm and natural',
-      'DistilBERT-NER entity extraction + regex fallback',
+      'Pure LLM extraction: Gemma 3 27b primary, Gemini 2.5 Flash backup',
+      'No-repeat conversation: full history passed to model each turn',
       'Voice input: 10 Indian languages via Web Speech API',
     ],
     icon: 'AI',
