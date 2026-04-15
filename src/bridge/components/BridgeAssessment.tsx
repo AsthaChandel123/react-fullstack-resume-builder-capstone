@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../../firebase/config';
+import { normalizeFirestore } from '../../firebase/normalize';
 import { useBridgeStore } from '../store';
 import { useResumeStore } from '@/store/resumeStore';
 import { useSelfAssessment } from '../hooks/useSelfAssessment';
@@ -58,23 +59,16 @@ export function BridgeAssessment({ criteriaCode }: Props) {
           setCriteriaLoading(false);
           return;
         }
-        // Normalize Firestore Timestamps -> JS Dates so the result is
-        // structured-cloneable (IndexedDB persistence would otherwise crash).
-        const raw = snap.data() as Record<string, unknown>;
-        const toDate = (v: unknown): Date | undefined => {
-          if (!v) return undefined;
-          if (v instanceof Date) return v;
-          if (typeof v === 'object' && v !== null && typeof (v as { toDate?: () => Date }).toDate === 'function') {
-            return (v as { toDate: () => Date }).toDate();
-          }
-          if (typeof v === 'string' || typeof v === 'number') return new Date(v);
-          return undefined;
-        };
+        // Deeply normalize the Firestore snapshot: every Timestamp becomes
+        // a plain JS Date so the result is structured-cloneable (IndexedDB
+        // persistence would otherwise crash on any nested Timestamp).
+        const raw = snap.data();
+        const normalized = normalizeFirestore(raw) as BridgeCriteria;
         const data: BridgeCriteria = {
-          ...(raw as BridgeCriteria),
+          ...normalized,
           shortCode: criteriaCode,
-          createdAt: toDate(raw.createdAt) ?? new Date(),
-          expiresAt: toDate(raw.expiresAt) ?? new Date(Date.now() + 90 * 86_400_000),
+          createdAt: normalized.createdAt ?? new Date(),
+          expiresAt: normalized.expiresAt ?? new Date(Date.now() + 90 * 86_400_000),
         };
         setCriteria(data);
       } catch (err) {
