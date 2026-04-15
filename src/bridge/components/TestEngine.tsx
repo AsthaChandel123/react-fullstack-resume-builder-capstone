@@ -128,7 +128,24 @@ export function TestEngine({ criteriaCode }: Props) {
           return;
         }
 
-        const data = snap.data() as BridgeCriteria;
+        const raw = snap.data() as Record<string, unknown>;
+        // Normalize Firestore Timestamps to plain JS Dates so Zustand +
+        // IndexedDB persistence (structured clone) does not crash.
+        const toDate = (v: unknown): Date | undefined => {
+          if (!v) return undefined;
+          if (v instanceof Date) return v;
+          if (typeof v === 'object' && v !== null && typeof (v as { toDate?: () => Date }).toDate === 'function') {
+            return (v as { toDate: () => Date }).toDate();
+          }
+          if (typeof v === 'string' || typeof v === 'number') return new Date(v);
+          return undefined;
+        };
+        const data: BridgeCriteria = {
+          ...(raw as BridgeCriteria),
+          shortCode: criteriaCode,
+          createdAt: toDate(raw.createdAt) ?? new Date(),
+          expiresAt: toDate(raw.expiresAt) ?? new Date(Date.now() + 90 * 86_400_000),
+        };
         if (!cancelled) {
           if (data.status && data.status !== 'active') {
             setError(
