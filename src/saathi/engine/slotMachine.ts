@@ -5,10 +5,9 @@ import {
   getNextUnfilledSlot,
   getFilledPercentage,
   getRequiredFilledPercentage,
-  getPhaseForSlot,
   skipPhaseSlots,
   addArrayEntry,
-  NEGATION_RE,
+  ALL_SLOTS,
   type SlotState,
   type SlotId,
   type ConversationPhase,
@@ -16,7 +15,7 @@ import {
 import { extractEntities, type ExtractedEntities } from './entityExtractor';
 import { getGreeting, getResponse, type ResponseKey } from './responseBank';
 import { extractWithAI, getGeminiApiKey, type AIExtractedData } from './aiExtractor';
-import { generateSaathiResponse } from './aiResponseGenerator';
+import { generateSaathiResponse, type ResponseTurn } from './aiResponseGenerator';
 
 const STORAGE_KEY = 'saathi_conversation';
 
@@ -178,8 +177,11 @@ export function processUserInput(
     };
   }
 
-  // Bug 2: Detect negation and skip current phase slots
-  if (NEGATION_RE.test(trimmed)) {
+  // Detect negation by simple keyword check (sync legacy path; production uses async AI path)
+  const NEGATION_WORDS = ['no', 'none', 'nothing', 'skip', 'na', 'nahi', 'nhi', "i don't have", 'not applicable'];
+  const lowerTrim = trimmed.toLowerCase();
+  const isNeg = NEGATION_WORDS.some((w) => lowerTrim === w || lowerTrim.startsWith(w + ' '));
+  if (isNeg) {
     const currentPhase = newSlots.phase;
     // Only skip non-required phases (experience, projects, skills, wrapup optional slots)
     const skippablePhases: ConversationPhase[] = ['experience', 'projects', 'skills'];
@@ -241,7 +243,7 @@ function fillSlotsFromEntities(
   slots: SlotState,
   entities: ExtractedEntities,
   rawText: string,
-  prevState: ConversationState,
+  _prevState: ConversationState,
 ): void {
   // Email
   if (entities.email && !slots.values.has('personal.email')) {
@@ -460,12 +462,6 @@ function fillSlotsFromEntities(
  * then update flat slots with the new entry's data.
  */
 function commitCurrentExperienceToArray(slots: SlotState): void {
-  const company = slots.values.get('experience[].company') as string || '';
-  const role = slots.values.get('experience[].role') as string || '';
-  const dates = slots.values.get('experience[].dates') as string || '';
-  const bullets = slots.values.get('experience[].bullets[]');
-
-  // Check if already committed (first entry is already in array from initial add)
   // Clear flat slots so next entry can fill them
   slots.values.delete('experience[].role' as SlotId);
   slots.values.delete('experience[].dates' as SlotId);
@@ -511,7 +507,7 @@ function updatePhase(slots: SlotState): void {
 
 function generateResponse(
   slots: SlotState,
-  entities: ExtractedEntities | null,
+  _entities: ExtractedEntities | null,
   prevState: ConversationState,
 ): ChatMessage {
   const name = (slots.values.get('personal.name') as string) || '';
@@ -728,23 +724,18 @@ function fillSlotsFromAI(slots: SlotState, data: AIExtractedData): void {
 }
 
 /**
- * Async version of processUserInput using Gemini 2.5 Flash for
- * natural language understanding and response generation.
- *
- * Falls back to sync processUserInput when API key is missing or calls fail.
+ * Production async path. Uses Gemma (primary) / Gemini (backup) for
+ * extraction and response generation. No regex.
  */
 export async function processUserInputAsync(
   state: ConversationState,
   input: string,
 ): Promise<ConversationState> {
   const apiKey = getGeminiApiKey();
-
-  // No API key: fall back to sync
   if (!apiKey) {
-    return processUserInput(state, input);
+    throw new Error('Saathi requires VITE_GEMINI_API_KEY to be set.');
   }
 
-  // Input validation
   const sanitized = input.slice(0, 2000).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
   const trimmed = sanitized.trim();
 
@@ -775,11 +766,21 @@ export async function processUserInputAsync(
     skippedSlots: new Set(state.slots.skippedSlots),
   };
 
-  // AI extraction
   const conversationContext = buildConversationContext(state.messages);
-  const aiData = await extractWithAI(trimmed, conversationContext, newSlots.phase, apiKey);
+  const lastSaathi = [...state.messages].reverse().find((m) => m.role === 'saathi');
+  const lastSaathiQuestion = lastSaathi?.text ?? '';
 
-  // Handle negation: skip current phase
+  const beforeMissing = getSlotStatus(newSlots).missing;
+
+  const aiData = await extractWithAI(
+    trimmed,
+    conversationContext,
+    newSlots.phase,
+    lastSaathiQuestion,
+    beforeMissing,
+    apiKey,
+  );
+
   if (aiData.isNegation) {
     const currentPhase = newSlots.phase;
     const skippablePhases: ConversationPhase[] = ['experience', 'projects', 'skills'];
@@ -789,23 +790,24 @@ export async function processUserInputAsync(
     }
   }
 
-  // Fill slots from AI-extracted data (even partial)
   fillSlotsFromAI(newSlots, aiData);
-
-  // Update phase based on what's filled
   updatePhase(newSlots);
 
-  // Build slot status for response generation
   const { filled, missing } = getSlotStatus(newSlots);
   const userName = (newSlots.values.get('personal.name') as string) || '';
 
-  // Generate AI response
+  const history: ResponseTurn[] = state.messages
+    .filter((m) => m.role === 'user' || m.role === 'saathi')
+    .map((m) => ({ role: m.role as 'user' | 'saathi', text: m.text }));
+  history.push({ role: 'user', text: trimmed });
+
   const responseText = await generateSaathiResponse(
     aiData,
     newSlots.phase,
     filled,
     missing,
     userName,
+    history,
     apiKey,
   );
 

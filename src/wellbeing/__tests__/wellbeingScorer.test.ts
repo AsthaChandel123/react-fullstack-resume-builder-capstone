@@ -3,7 +3,6 @@ import {
   computeWellbeing,
   classifyScore,
   type WellbeingInput,
-  type WellbeingResult,
 } from '../engine/wellbeingScorer';
 
 describe('wellbeingScorer', () => {

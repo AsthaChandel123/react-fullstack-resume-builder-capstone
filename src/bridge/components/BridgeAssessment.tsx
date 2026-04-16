@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../../firebase/config';
+import { normalizeFirestore } from '../../firebase/normalize';
 import { useBridgeStore } from '../store';
 import { useResumeStore } from '@/store/resumeStore';
 import { useSelfAssessment } from '../hooks/useSelfAssessment';
@@ -58,8 +59,18 @@ export function BridgeAssessment({ criteriaCode }: Props) {
           setCriteriaLoading(false);
           return;
         }
-        const data = snap.data() as BridgeCriteria;
-        setCriteria({ ...data, shortCode: criteriaCode });
+        // Deeply normalize the Firestore snapshot: every Timestamp becomes
+        // a plain JS Date so the result is structured-cloneable (IndexedDB
+        // persistence would otherwise crash on any nested Timestamp).
+        const raw = snap.data();
+        const normalized = normalizeFirestore(raw) as BridgeCriteria;
+        const data: BridgeCriteria = {
+          ...normalized,
+          shortCode: criteriaCode,
+          createdAt: normalized.createdAt ?? new Date(),
+          expiresAt: normalized.expiresAt ?? new Date(Date.now() + 90 * 86_400_000),
+        };
+        setCriteria(data);
       } catch (err) {
         setLoadError(
           err instanceof Error ? err.message : 'Failed to load criteria.',

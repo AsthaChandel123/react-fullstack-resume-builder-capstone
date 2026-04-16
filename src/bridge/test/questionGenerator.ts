@@ -1,4 +1,5 @@
 import type { QuestionType, DifficultyLevel, GeneratedQuestion } from '../types';
+import { SAATHI_MODELS, modelEndpoint, supportsJsonMode } from '@/saathi/engine/modelConfig';
 
 export interface RawQuestion {
   text: string;
@@ -143,28 +144,48 @@ export async function generateQuestion(
   const prompt = buildQuestionPrompt(skill, level, type, resumeClaims);
   const maxRetries = 3;
 
+  // Try primary (Gemma) first, then backup (Gemini), alternating on retries.
+  const modelOrder = [
+    SAATHI_MODELS.primary,
+    SAATHI_MODELS.backup,
+    SAATHI_MODELS.backup,
+  ];
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const model = modelOrder[attempt];
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.8,
-              responseMimeType: 'application/json',
-            },
-          }),
-        },
-      );
+      const generationConfig: Record<string, unknown> = {
+        temperature: 0.8,
+        maxOutputTokens: 1024,
+      };
+      if (supportsJsonMode(model)) {
+        generationConfig.responseMimeType = 'application/json';
+      }
+      if (model.startsWith('gemini-')) {
+        generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      }
+
+      const response = await fetch(modelEndpoint(model, geminiApiKey), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig,
+        }),
+      });
 
       if (!response.ok) continue;
 
       const data = await response.json();
-      const rawText =
+      let rawText: string =
         data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      // Gemma returns plain text; strip any stray fences and slice to the first JSON object
+      if (!supportsJsonMode(model)) {
+        const s = rawText.indexOf('{');
+        const e = rawText.lastIndexOf('}');
+        if (s < 0 || e < 0 || e < s) continue;
+        rawText = rawText.slice(s, e + 1);
+      }
       const parsed: RawQuestion = JSON.parse(rawText);
 
       if (

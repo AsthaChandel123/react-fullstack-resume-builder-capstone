@@ -21,7 +21,6 @@ import type { Blackboard, DAGNode, AgentId, PipelineConfig, ProgressCallback } f
  * Returns topological order if valid, throws if cycle detected.
  */
 function validateDAG(nodes: DAGNode[]): AgentId[] {
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const inDegree = new Map<AgentId, number>();
   const adjacency = new Map<AgentId, AgentId[]>();
 

@@ -7,8 +7,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-vi.mock('../../ai/models/webllm', () => ({
+vi.mock('../../ai/models/webllmStatus', () => ({
   isModelReady: () => false,
+  markModelReady: () => {},
+  markModelUnready: () => {},
 }));
 
 // Ensure localStorage exists before component imports

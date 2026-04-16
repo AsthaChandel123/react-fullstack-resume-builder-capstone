@@ -76,5 +76,17 @@ service cloud.firestore {
     match /mail/{mailId} {
       allow read, write: if false; // Cloud Functions only
     }
+
+    // Password-protected shareable resumes.
+    // - Read is public (anyone with the URL can view).
+    // - Create and update go through Cloud Functions (createSharedResume,
+    //   updateSharedResume) so the server can verify the password hash.
+    // - Direct client writes are blocked so the client cannot bypass the
+    //   password check by writing straight to Firestore.
+    match /resumes/{slug} {
+      allow read: if slug.size() >= 6 && slug.size() <= 32
+        && slug.matches('[A-Za-z0-9_-]+');
+      allow create, update, delete: if false;
+    }
   }
 }

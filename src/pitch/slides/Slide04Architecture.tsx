@@ -20,8 +20,8 @@ export function Slide04Architecture() {
           <div className="space-y-3">
             {[
               { label: 'Saathi Chat', desc: 'Slot-filling conversation', accent: '#0f766e' },
-              { label: 'Entity Extraction', desc: 'DistilBERT-NER + regex patterns', accent: '#075985' },
-              { label: 'Slot Machine', desc: '23 slots, 241 response templates', accent: '#4338ca' },
+              { label: 'AI Extraction', desc: 'Gemma 3 27b + Gemini 2.5 backup', accent: '#075985' },
+              { label: 'Slot Machine', desc: '23 slots, no-repeat AI responses', accent: '#4338ca' },
               { label: 'Resume Generator', desc: 'Live preview, 4 ATS templates', accent: '#6d28d9' },
             ].map((node, i) => (
               <div key={node.label} className="flex items-center gap-3">

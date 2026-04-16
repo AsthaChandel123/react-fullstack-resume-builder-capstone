@@ -1,5 +1,7 @@
+import { useMemo, useState } from 'react';
 import { useResumeStore } from '@/store/resumeStore';
 import type { PersonalInfo } from '@/store/types';
+import { validatePersonal } from '../validation';
 
 const FIELDS: { key: keyof PersonalInfo; label: string; type: string; required: boolean; placeholder: string }[] = [
   { key: 'name', label: 'Full Name', type: 'text', required: true, placeholder: 'Astha Chandel' },
@@ -13,6 +15,9 @@ const FIELDS: { key: keyof PersonalInfo; label: string; type: string; required: 
 export function PersonalInfoForm() {
   const personal = useResumeStore((s) => s.resume.personal);
   const setPersonal = useResumeStore((s) => s.setPersonal);
+  const [touched, setTouched] = useState<Partial<Record<keyof PersonalInfo, boolean>>>({});
+
+  const errors = useMemo(() => validatePersonal(personal), [personal]);
 
   return (
     <fieldset className="space-y-4">
@@ -20,33 +25,50 @@ export function PersonalInfoForm() {
         Personal Information
       </legend>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {FIELDS.map(({ key, label, type, required, placeholder }) => (
-          <div key={key} className="flex flex-col gap-1">
-            <label
-              htmlFor={`personal-${key}`}
-              className="text-sm font-medium"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {label}
-              {required && <span className="ml-0.5" style={{ color: 'var(--accent-red)' }} aria-hidden="true">*</span>}
-            </label>
-            <input
-              id={`personal-${key}`}
-              type={type}
-              required={required}
-              aria-required={required}
-              placeholder={placeholder}
-              value={personal[key]}
-              onChange={(e) => setPersonal({ [key]: e.target.value })}
-              className="min-h-[44px] rounded-md border px-3 py-2 text-sm transition-colors"
-              style={{
-                background: 'var(--bg-surface)',
-                borderColor: 'var(--border)',
-                color: 'var(--text-primary)',
-              }}
-            />
-          </div>
-        ))}
+        {FIELDS.map(({ key, label, type, required, placeholder }) => {
+          const errId = `personal-${key}-err`;
+          const show = touched[key] && errors[key];
+          return (
+            <div key={key} className="flex flex-col gap-1">
+              <label
+                htmlFor={`personal-${key}`}
+                className="text-sm font-medium"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {label}
+                {required && <span className="ml-0.5" style={{ color: 'var(--accent-red)' }} aria-hidden="true">*</span>}
+              </label>
+              <input
+                id={`personal-${key}`}
+                type={type}
+                required={required}
+                aria-required={required}
+                aria-invalid={show ? true : undefined}
+                aria-describedby={show ? errId : undefined}
+                placeholder={placeholder}
+                value={personal[key]}
+                onChange={(e) => setPersonal({ [key]: e.target.value })}
+                onBlur={() => setTouched((t) => ({ ...t, [key]: true }))}
+                className="min-h-[44px] rounded-md border px-3 py-2 text-sm transition-colors"
+                style={{
+                  background: 'var(--bg-surface)',
+                  borderColor: show ? 'var(--accent-red)' : 'var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+              {show && (
+                <span
+                  id={errId}
+                  className="text-xs"
+                  style={{ color: 'var(--accent-red)' }}
+                  role="alert"
+                >
+                  {errors[key]}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </fieldset>
   );

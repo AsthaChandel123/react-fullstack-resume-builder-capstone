@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isSpeechSupported, createSpeechInput, type SpeechInput } from '../voice/speechInput';
+import { isSpeechSupported, createSpeechInput } from '../voice/speechInput';
 
 // Mock SpeechRecognition
 class MockSpeechRecognition {

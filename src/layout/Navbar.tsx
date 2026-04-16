@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { isModelReady } from '../ai/models/webllm';
+import { isModelReady } from '../ai/models/webllmStatus';
 
 type Mode = 'student' | 'employer';
 

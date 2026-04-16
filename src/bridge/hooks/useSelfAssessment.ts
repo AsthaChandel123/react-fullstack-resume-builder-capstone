@@ -198,11 +198,22 @@ export function useSelfAssessment(): SelfAssessmentReturn {
 
       // Pipeline: L1 -> L2 -> Score
       const l1 = analyzeL1(resumeText, jdText);
-      let l2;
+      // L2 async path can hang on WASM load (flaky network, CSP, etc).
+      // Race it with a 6-second timeout and fall back to TF-IDF so the
+      // UI never freezes on "Scoring...".
+      let l2: Awaited<ReturnType<typeof analyzeL2>>;
+      let timer: ReturnType<typeof setTimeout> | null = null;
       try {
-        l2 = await analyzeL2(resumeText, jdText);
+        l2 = await Promise.race<Awaited<ReturnType<typeof analyzeL2>>>([
+          analyzeL2(resumeText, jdText),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error('L2 timeout')), 6000);
+          }),
+        ]);
       } catch {
         l2 = analyzeL2Sync(resumeText, jdText);
+      } finally {
+        if (timer) clearTimeout(timer);
       }
       const candidateScores = computeScore(l1, l2, null, null);
 

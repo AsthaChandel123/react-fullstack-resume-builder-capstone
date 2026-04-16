@@ -1,6 +1,6 @@
 // /mnt/experiments/astha-resume/src/saathi/engine/entityExtractor.ts
 
-import { normalizeSkill, matchSkillsToTaxonomy } from '@/ai/taxonomy/skillsGraph';
+import { normalizeSkill } from '@/ai/taxonomy/skillsGraph';
 
 export interface ExtractedEntities {
   email: string | null;
@@ -144,7 +144,7 @@ export function extractEntities(text: string): ExtractedEntities {
   return result;
 }
 
-import { extractNEREntities, type NEREntity } from './nerModel';
+import { extractNEREntities } from './nerModel';
 
 /**
  * Enhanced entity extraction using DistilBERT-NER + regex patterns.

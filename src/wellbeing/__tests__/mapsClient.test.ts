@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getCommuteData, type CommuteData } from '../engine/mapsClient';
+import { getCommuteData } from '../engine/mapsClient';
 
 describe('mapsClient', () => {
   it('returns null without API key', async () => {

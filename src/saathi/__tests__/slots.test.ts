@@ -2,13 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   REQUIRED_SLOTS,
   PREFERRED_SLOTS,
-  ALL_SLOTS,
   createSlotState,
   isSlotFilled,
   getFilledPercentage,
   getNextUnfilledSlot,
-  type SlotState,
-  type SlotId,
 } from '../engine/slots';
 
 describe('slots', () => {

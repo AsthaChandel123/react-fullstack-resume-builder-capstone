@@ -26,7 +26,6 @@ import type {
   Blackboard,
   DAGNode,
   PipelineConfig,
-  PipelineProgress,
   ProgressCallback,
   CoachSuggestion,
 } from './types';

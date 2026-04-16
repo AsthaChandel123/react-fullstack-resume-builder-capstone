@@ -3,7 +3,6 @@ import {
   createConversation,
   processUserInput,
   type ConversationState,
-  type ChatMessage,
 } from '../engine/slotMachine';
 
 describe('slotMachine', () => {

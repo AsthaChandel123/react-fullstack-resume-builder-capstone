@@ -21,6 +21,8 @@
  * - 128K context (vs 8K for Gemma 3 1B)
  */
 
+import { markModelReady, markModelUnready, isModelReady as isModelReadyStatus } from './webllmStatus';
+
 // Types for the pipeline -- Transformers.js is dynamically imported
 interface TextGenerationOutput {
   generated_text: string;
@@ -104,6 +106,7 @@ export async function getOrCreateEngine(
     pipelineInstance = pipe;
     modelDownloaded = true;
     loadingPromise = null;
+    markModelReady();
 
     onProgress?.({ progress: 1, text: 'Gemma 4 E2B ready.' });
     return pipe;
@@ -151,7 +154,7 @@ export function isEngineReady(): boolean {
  * Returns true if pipeline is loaded or if a previous download completed.
  */
 export function isModelReady(): boolean {
-  return pipelineInstance !== null || modelDownloaded;
+  return pipelineInstance !== null || modelDownloaded || isModelReadyStatus();
 }
 
 /**
@@ -171,4 +174,6 @@ export async function unloadEngine(): Promise<void> {
     // but we can null the reference to allow GC
     pipelineInstance = null;
   }
+  modelDownloaded = false;
+  markModelUnready();
 }

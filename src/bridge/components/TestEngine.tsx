@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../../firebase/config';
+import { normalizeFirestore } from '../../firebase/normalize';
 import { getCurrentUser } from '../../firebase/auth';
 import { ensureAuth, bindEmailToDevice } from '../../firebase/autoAuth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -128,7 +129,25 @@ export function TestEngine({ criteriaCode }: Props) {
           return;
         }
 
-        const data = snap.data() as BridgeCriteria;
+        const normalized = normalizeFirestore(snap.data()) as BridgeCriteria;
+        if (!normalized.expiresAt || !normalized.createdAt) {
+          if (!cancelled) {
+            setError('This test is missing required metadata and cannot be taken. Please contact the employer.');
+            setPhase('error');
+          }
+          return;
+        }
+        if (normalized.expiresAt.getTime() <= Date.now()) {
+          if (!cancelled) {
+            setError('This test has expired and is no longer accepting submissions.');
+            setPhase('error');
+          }
+          return;
+        }
+        const data: BridgeCriteria = {
+          ...normalized,
+          shortCode: criteriaCode,
+        };
         if (!cancelled) {
           if (data.status && data.status !== 'active') {
             setError(
