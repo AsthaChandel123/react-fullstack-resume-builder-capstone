@@ -12,7 +12,11 @@ export function Layout() {
       }}
     >
       <Navbar />
-      <main id="main-content" className="flex-1" tabIndex={-1}>
+      <main
+        id="main-content"
+        className="with-floating-nav flex-1"
+        tabIndex={-1}
+      >
         <Outlet />
       </main>
       <Footer />

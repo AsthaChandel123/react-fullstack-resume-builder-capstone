@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getDb, initFirebase, isFirebaseConfigured } from '../../firebase/config';
+import { collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { getDb, isFirebaseConfigured } from '../../firebase/config';
+import { api } from '../../firebase/apiClient';
 import { ensureAuth } from '../../firebase/autoAuth';
+import { DEMO_BANNER_TEXT } from '../demoData';
 import type { MatchSignal } from '../types';
 
 type SortKey = 'candidateName' | 'resumeScore' | 'verifiedScore' | 'integrityScore' | 'gap' | 'status' | 'sentAt';
@@ -16,6 +17,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function EmployerMatchDashboard() {
   const [matches, setMatches] = useState<MatchSignal[]>([]);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [minVerified, setMinVerified] = useState(0);
@@ -46,8 +48,29 @@ export default function EmployerMatchDashboard() {
         orderBy('sentAt', 'desc')
       );
 
-      unsub = onSnapshot(q, (snap) => {
-        const data = snap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
+      unsub = onSnapshot(q, async (snap) => {
+        let data = snap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
+
+        // When the employer has no real incoming matches yet, surface the
+        // live isDemo:true dataset so the table is not empty. Anyone can
+        // read those docs via the public-read rule branch.
+        if (data.length === 0) {
+          try {
+            const demoSnap = await getDocs(
+              query(
+                collection(db, 'matches'),
+                where('isDemo', '==', true),
+                where('demoRole', '==', 'employer'),
+              ),
+            );
+            data = demoSnap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
+            setIsDemoMode(true);
+          } catch {
+            // Demo fetch failed silently — table renders empty.
+          }
+        } else {
+          setIsDemoMode(false);
+        }
         setMatches(data);
         setLoading(false);
       }, (err) => {
@@ -69,6 +92,15 @@ export default function EmployerMatchDashboard() {
       (m) => m.verifiedScore >= minVerified && m.integrityScore >= minIntegrity
     );
 
+    const toMs = (d: unknown): number => {
+      if (d instanceof Date) return d.getTime();
+      if (typeof d === 'object' && d !== null && typeof (d as { toDate?: unknown }).toDate === 'function') {
+        return (d as { toDate: () => Date }).toDate().getTime();
+      }
+      const t = new Date(d as string | number).getTime();
+      return Number.isFinite(t) ? t : 0;
+    };
+
     list.sort((a, b) => {
       let av: number | string;
       let bv: number | string;
@@ -81,8 +113,8 @@ export default function EmployerMatchDashboard() {
         case 'status': av = a.status; bv = b.status; break;
         case 'sentAt':
         default:
-          av = a.sentAt instanceof Date ? a.sentAt.getTime() : new Date(a.sentAt as unknown as string).getTime();
-          bv = b.sentAt instanceof Date ? b.sentAt.getTime() : new Date(b.sentAt as unknown as string).getTime();
+          av = toMs(a.sentAt);
+          bv = toMs(b.sentAt);
           break;
       }
       if (av < bv) return sortDir === 'asc' ? -1 : 1;
@@ -98,10 +130,7 @@ export default function EmployerMatchDashboard() {
     setReplying(true);
     setReplyError(null);
     try {
-      const { app } = initFirebase();
-      const functions = getFunctions(app);
-      const replyToMatch = httpsCallable(functions, 'replyToMatch');
-      await replyToMatch({ matchId: replyModalMatch.matchId, message: replyText.trim() });
+      await api.replyToMatch({ matchId: replyModalMatch.matchId, message: replyText.trim() });
       setRepliedIds((prev) => new Set(prev).add(replyModalMatch.matchId));
       setReplyModalMatch(null);
       setReplyText('');
@@ -154,6 +183,16 @@ export default function EmployerMatchDashboard() {
   return (
     <div className="max-w-6xl mx-auto">
       <h2 className="text-xl font-bold mb-4">Incoming Match Signals</h2>
+
+      {isDemoMode && (
+        <div
+          role="note"
+          aria-label="Sample data notice"
+          className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <strong className="font-semibold">Sample data.</strong> {DEMO_BANNER_TEXT}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6" role="search" aria-label="Filter matches">

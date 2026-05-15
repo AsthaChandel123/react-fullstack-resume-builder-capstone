@@ -1,17 +1,65 @@
 :root,
 .light {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-surface: #fafafa;
-  --text-primary: #333333;
-  --text-secondary: #525252;
-  --text-muted: #595959;
-  --border: #e0e0e0;
-  --accent-red: #e41a1a;
+  /* Surfaces */
+  --bg-primary: #fbfaf7;
+  --bg-secondary: #f1efe9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+
+  /* Text */
+  --text-primary: #11131a;
+  --text-secondary: #3a3f4b;
+  --text-muted: #6b7280;
+
+  /* Borders */
+  --border: #e7e3da;
+  --border-strong: #d5cfc1;
+
+  /* Brand anchors */
+  --accent-red: #ff5a5f;
+  --accent-coral: #ff5a5f;
+  --accent-amber: #ffb454;
+  --accent-gold: #ffd400;
+  --accent-indigo: #5b5bff;
   --accent-navy: #182b49;
-  --accent-gold: #d4a800;
-  --shadow: rgba(0, 0, 0, 0.08);
-  --focus-ring: #182b49;
+  --accent-navy-deep: #0a1428;
+
+  /* Accent gradient (coral -> amber -> gold) */
+  --accent-gradient: linear-gradient(135deg, #ff5a5f 0%, #ffb454 50%, #ffd400 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(255, 90, 95, 0.18) 0%, rgba(255, 180, 84, 0.18) 50%, rgba(255, 212, 0, 0.18) 100%);
+  --accent-gradient-indigo: linear-gradient(135deg, #5b5bff 0%, #8a5bff 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(17, 19, 26, 0.05);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05), 0 24px 48px -16px rgba(17, 19, 26, 0.08);
+  --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.06), 0 36px 64px -20px rgba(17, 19, 26, 0.18);
+  --shadow-pill: 0 8px 32px -8px rgba(17, 19, 26, 0.12), 0 2px 8px -2px rgba(17, 19, 26, 0.08);
+  --shadow: rgba(17, 19, 26, 0.08);
+
+  /* Focus */
+  --focus-ring: #5b5bff;
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(17, 19, 26, 0.06);
+
+  /* Typography */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 160ms;
+  --dur: 220ms;
+  --dur-slow: 420ms;
+
+  /* Radii */
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
   /* Saathi Positive Aura tokens (spec section 5.3) */
   --saathi-bg-warm: #fefefe;
   --saathi-bg-cream: #faf7f2;
@@ -30,18 +78,41 @@
 }
 
 .dark {
-  --bg-primary: #0d1b2a;
-  --bg-secondary: #0a1520;
-  --bg-surface: #1a2a3a;
-  --text-primary: #e0e0e0;
-  --text-secondary: #b0b0b0;
-  --text-muted: #9a9a9a;
-  --border: #2a3a4a;
-  --accent-red: #e85454;
+  --bg-primary: #0a1428;
+  --bg-secondary: #07101f;
+  --bg-surface: #111d33;
+  --bg-elevated: #16253f;
+
+  --text-primary: #f1f1f1;
+  --text-secondary: #b9c1cf;
+  --text-muted: #8a93a3;
+
+  --border: #1f2d47;
+  --border-strong: #2a3a58;
+
+  --accent-red: #ff7378;
+  --accent-coral: #ff7378;
+  --accent-amber: #ffc06b;
+  --accent-gold: #ffe04a;
+  --accent-indigo: #7c7cff;
   --accent-navy: #3a6a9a;
-  --accent-gold: #ffdc00;
-  --shadow: rgba(0, 0, 0, 0.3);
-  --focus-ring: #6a9aca;
+  --accent-navy-deep: #050a15;
+
+  --accent-gradient: linear-gradient(135deg, #ff7378 0%, #ffc06b 50%, #ffe04a 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(255, 115, 120, 0.22) 0%, rgba(255, 192, 107, 0.22) 50%, rgba(255, 224, 74, 0.22) 100%);
+  --accent-gradient-indigo: linear-gradient(135deg, #7c7cff 0%, #a072ff 100%);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 24px 48px -16px rgba(0, 0, 0, 0.5);
+  --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.06), 0 40px 80px -24px rgba(0, 0, 0, 0.7);
+  --shadow-pill: 0 8px 32px -8px rgba(0, 0, 0, 0.5), 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+  --shadow: rgba(0, 0, 0, 0.4);
+
+  --focus-ring: #9b9bff;
+
+  --glass-bg: rgba(16, 28, 49, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
   /* Saathi Positive Aura tokens (dark mode) */
   --saathi-bg-warm: #0f1a24;
   --saathi-bg-cream: #131f2b;
@@ -65,12 +136,19 @@
     --bg-primary: #ffffff;
     --bg-secondary: #ffffff;
     --bg-surface: #ffffff;
+    --bg-elevated: #ffffff;
     --text-primary: #000000;
     --text-secondary: #333333;
     --text-muted: #666666;
     --border: #cccccc;
+    --border-strong: #999999;
     --accent-red: #000000;
     --accent-navy: #000000;
+    --accent-navy-deep: #000000;
+    --accent-gradient: none;
     --shadow: none;
+    --shadow-card: none;
+    --shadow-lift: none;
+    --shadow-pill: none;
   }
 }

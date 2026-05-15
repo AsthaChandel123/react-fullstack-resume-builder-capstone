@@ -731,10 +731,9 @@ export async function processUserInputAsync(
   state: ConversationState,
   input: string,
 ): Promise<ConversationState> {
+  // Empty key is allowed; the extractor will route to local-only or throw
+  // a precise error if neither cloud nor on-device path is available.
   const apiKey = getGeminiApiKey();
-  if (!apiKey) {
-    throw new Error('Saathi requires VITE_GEMINI_API_KEY to be set.');
-  }
 
   const sanitized = input.slice(0, 2000).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
   const trimmed = sanitized.trim();
@@ -823,6 +822,128 @@ export async function processUserInputAsync(
 
   const result: ConversationState = {
     messages: [...state.messages, userMsg, responseMsg],
+    slots: newSlots,
+    filledPercentage: filledPct,
+    requiredFilledPercentage: reqPct,
+    isComplete: reqPct === 100,
+  };
+
+  saveToStorage(result);
+  return result;
+}
+
+// ── Voice (Gemini Live) helpers ──────────────────────────────────────
+
+/**
+ * Args shape coming from the Gemini Live `fill_resume_field` tool call.
+ * The model is instructed to emit one slot at a time; bullets/skills
+ * arrive as arrays when relevant.
+ */
+export interface VoiceFillArgs {
+  field:
+    | 'name'
+    | 'email'
+    | 'phone'
+    | 'location'
+    | 'targetRole'
+    | 'degree'
+    | 'institution'
+    | 'year'
+    | 'field'
+    | 'gpa'
+    | 'company'
+    | 'role'
+    | 'dates'
+    | 'linkedin'
+    | 'github';
+  value: string;
+  bullets?: string[];
+  skills?: string[];
+}
+
+/**
+ * Apply a voice-mode slot fill to the given slot state, returning a
+ * fresh ConversationState with updated percentages and phase. Used by
+ * SaathiVoiceChat to feed Gemini's function-call outputs into the same
+ * store that powers the text chat.
+ */
+export function fillSlotsFromVoiceArgs(
+  state: ConversationState,
+  args: VoiceFillArgs,
+): ConversationState {
+  const newSlots: SlotState = {
+    values: new Map(state.slots.values),
+    phase: state.slots.phase,
+    arrayIndices: new Map(state.slots.arrayIndices),
+    skippedSlots: new Set(state.slots.skippedSlots),
+  };
+
+  const data: AIExtractedData = {};
+  const raw = (args.value ?? '').toString().trim();
+
+  switch (args.field) {
+    case 'name':
+      if (raw) data.name = raw;
+      break;
+    case 'email':
+      if (raw) data.email = raw;
+      break;
+    case 'phone':
+      if (raw) data.phone = raw;
+      break;
+    case 'location':
+      if (raw) data.location = raw;
+      break;
+    case 'targetRole':
+      if (raw) data.targetRole = raw;
+      break;
+    case 'degree':
+      if (raw) data.degree = raw;
+      break;
+    case 'institution':
+      if (raw) data.institution = raw;
+      break;
+    case 'year':
+      if (raw) data.year = raw;
+      break;
+    case 'field':
+      if (raw) data.field = raw;
+      break;
+    case 'gpa':
+      if (raw) data.gpa = raw;
+      break;
+    case 'company':
+      if (raw) data.company = raw;
+      break;
+    case 'role':
+      if (raw) data.role = raw;
+      break;
+    case 'dates':
+      if (raw) data.dates = raw;
+      break;
+    case 'linkedin':
+      if (raw) data.linkedin = raw;
+      break;
+    case 'github':
+      if (raw) data.github = raw;
+      break;
+  }
+
+  if (Array.isArray(args.bullets) && args.bullets.length > 0) {
+    data.bullets = args.bullets.map((b) => String(b).trim()).filter(Boolean);
+  }
+  if (Array.isArray(args.skills) && args.skills.length > 0) {
+    data.skills = args.skills.map((s) => String(s).trim()).filter(Boolean);
+  }
+
+  fillSlotsFromAI(newSlots, data);
+  updatePhase(newSlots);
+
+  const filledPct = getFilledPercentage(newSlots);
+  const reqPct = getRequiredFilledPercentage(newSlots);
+
+  const result: ConversationState = {
+    messages: state.messages,
     slots: newSlots,
     filledPercentage: filledPct,
     requiredFilledPercentage: reqPct,

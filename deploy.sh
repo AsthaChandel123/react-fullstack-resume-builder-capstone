@@ -4,8 +4,8 @@
 
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT:-lmsforshantithakur}"
-REGION="${GCP_REGION:-asia-south1}"
+PROJECT_ID="${GCP_PROJECT:-dmjone}"
+REGION="${GCP_REGION:-asia-east1}"
 SERVICE_NAME="resumeai"
 IMAGE="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
 
@@ -44,7 +44,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --memory=256Mi \
   --cpu=1 \
   --min-instances=0 \
-  --max-instances=3
+  --max-instances=1
 
 echo "==> Done. Service URL:"
 gcloud run services describe "${SERVICE_NAME}" \

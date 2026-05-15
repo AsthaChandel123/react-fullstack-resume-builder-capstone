@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useResumeStore, uuid } from '@/store/resumeStore';
 import type { Section } from '@/store/types';
 
@@ -58,7 +59,13 @@ export function CustomSectionModal({ open, onClose }: CustomSectionModalProps) {
     onClose();
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  // Portal to document.body so the inner <form> is not a descendant of the
+  // outer Resume form in the React tree (avoids the nested-form hydration
+  // warning). The <dialog> element already escapes the DOM via the top
+  // layer at runtime, but React's JSX-tree-based check fires before that.
+  return createPortal(
     <dialog
       ref={dialogRef}
       onClose={onClose}
@@ -171,6 +178,7 @@ export function CustomSectionModal({ open, onClose }: CustomSectionModalProps) {
           </button>
         </div>
       </form>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }

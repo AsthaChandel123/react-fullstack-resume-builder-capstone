@@ -1,6 +1,142 @@
 @import 'tailwindcss';
 @import './theme/tokens.css';
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Numbers in mono for stats */
+.num,
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Floating pill nav lives outside normal flow; main needs top padding */
+.with-floating-nav {
+  padding-top: 88px;
+}
+@media (max-width: 639px) {
+  .with-floating-nav {
+    padding-top: 76px;
+  }
+}
+
+/* Hero gradient ambient drift */
+@keyframes gradient-drift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.85); }
+}
+
+@keyframes counter-roll {
+  0% { transform: translateY(0); opacity: 1; }
+  40% { transform: translateY(-100%); opacity: 0; }
+  41% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.anim-gradient-drift {
+  background-size: 200% 200%;
+  animation: gradient-drift 18s var(--ease-in-out) infinite;
+}
+
+.anim-float {
+  animation: float-y 6s var(--ease-in-out) infinite;
+}
+
+.anim-pulse-dot {
+  animation: pulse-dot 1.8s var(--ease-in-out) infinite;
+}
+
+/* Card lift */
+.lift {
+  transition: transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out);
+  will-change: transform;
+}
+.lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Accent gradient text */
+.text-gradient {
+  background: var(--accent-gradient);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gradient-drift 12s var(--ease-in-out) infinite;
+}
+
+/* Glass surface */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+}
+
+/* Custom scrollbar (skip on touch / Firefox falls back gracefully) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Selection */
+::selection {
+  background: rgba(91, 91, 255, 0.25);
+  color: var(--text-primary);
+}
+
 /* Laser pointer cursor for pitch slides */
 .pitch-deck .pitch-slide {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='5' fill='%23e41a1a' fill-opacity='0.9'/%3E%3Ccircle cx='10' cy='10' r='8' fill='none' stroke='%23e41a1a' stroke-width='1.5' stroke-opacity='0.4'/%3E%3C/svg%3E") 10 10, crosshair;
@@ -13,7 +149,8 @@
 
 *:focus-visible {
   outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -24,5 +161,16 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .lift:hover { transform: none; }
+}
+
+@media print {
+  .with-floating-nav { padding-top: 0; }
+  .glass {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
   }
 }

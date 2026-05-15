@@ -1,7 +1,7 @@
 import { useState, type KeyboardEvent } from 'react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, updateDoc } from 'firebase/firestore';
-import { initFirebase, isFirebaseConfigured, getDb } from '../../firebase/config';
+import { isFirebaseConfigured, getDb } from '../../firebase/config';
+import { api } from '../../firebase/apiClient';
 import { getCurrentUser } from '../../firebase/auth';
 import { ensureAuth } from '../../firebase/autoAuth';
 import { DEFAULT_WEIGHTS, type CustomSignal, type TestConfig } from '../types';
@@ -102,17 +102,13 @@ export default function CriteriaPublishForm() {
 
     setPublishing(true);
     try {
-      const { app } = initFirebase();
-      const functions = getFunctions(app);
-      const publishCriteria = httpsCallable<unknown, { shortCode: string }>(functions, 'publishCriteria');
-
       const testConfig: TestConfig = {
         skillsToTest: requiredSkills,
         difficultyFloor: 1,
         questionCount: Math.min(10, Math.max(5, questionCount)),
       };
 
-      const result = await publishCriteria({
+      const result = await api.publishCriteria({
         jobTitle: jobTitle.trim(),
         description: description.trim(),
         requiredSkills,
@@ -123,7 +119,7 @@ export default function CriteriaPublishForm() {
         testConfig,
       });
 
-      setShortCode(result.data.shortCode);
+      setShortCode(result.shortCode);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Publish failed. Try again.');
     } finally {

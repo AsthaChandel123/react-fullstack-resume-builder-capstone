@@ -1,4 +1,3 @@
-// /mnt/experiments/astha-resume/src/saathi/engine/aiExtractor.ts
 // Local-first LLM extraction:
 //   1. On-device Gemma 4 E2B (when the model is downloaded and device is capable)
 //   2. Cloud Gemma (via Google Generative Language API) as primary cloud path
@@ -8,7 +7,14 @@
 // the model is cached locally. Failures fall through to the cloud path
 // only when an API key is present.
 
-import { SAATHI_MODELS, modelEndpoint, supportsJsonMode, supportsResponseSchema } from './modelConfig';
+import {
+  SAATHI_MODELS,
+  modelEndpoint,
+  supportsJsonMode,
+  supportsResponseSchema,
+  CLOUD_INFERENCE_TIMEOUT_MS,
+  LOCAL_INFERENCE_DEADLINE_MS,
+} from './modelConfig';
 import { canExtractLocally, extractLocally } from './localExtractor';
 
 export type ExtractionSource = 'local-gemma' | 'cloud-gemma' | 'cloud-gemini' | 'none';
@@ -71,8 +77,6 @@ const AI_EXTRACTION_SCHEMA = {
   },
   required: ['rawMeaning'] as const,
 };
-
-const EXTRACT_TIMEOUT_MS = 15_000;
 
 function buildExtractionPrompt(
   userMessage: string,
@@ -152,7 +156,7 @@ async function callExtractModel(
   apiKey: string,
 ): Promise<AIExtractedData> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), EXTRACT_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), CLOUD_INFERENCE_TIMEOUT_MS);
 
   const generationConfig: Record<string, unknown> = {
     temperature: 0.1,
@@ -195,6 +199,50 @@ async function callExtractModel(
   }
 }
 
+/**
+ * User-controlled flag for the on-device extraction path. Off by default —
+ * the local 1.5GB Gemma 4 E2B model is too slow on CPU-only browsers to use
+ * as the chat default. Flip via the UI ("offline / private mode") and the
+ * extractor will race local with a 4s deadline against the cloud call.
+ */
+const OFFLINE_MODE_KEY = 'saathi_offline_mode';
+
+export function isOfflineModePreferred(): boolean {
+  try {
+    return localStorage.getItem(OFFLINE_MODE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setOfflineModePreferred(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(OFFLINE_MODE_KEY, '1');
+    else localStorage.removeItem(OFFLINE_MODE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function isBrowserOnline(): boolean {
+  if (typeof navigator === 'undefined') return true;
+  return navigator.onLine !== false;
+}
+
+/**
+ * Race a deadline against the local-model promise. If the deadline fires,
+ * resolves with `null` so the caller can fall through to the cloud path.
+ */
+async function raceWithDeadline<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 export async function extractWithAI(
   userMessage: string,
   conversationContext: string,
@@ -211,34 +259,71 @@ export async function extractWithAI(
     missingSlots,
   );
 
-  // Tier 1: on-device Gemma 4 E2B (true offline, private)
-  if (canExtractLocally()) {
+  const online = isBrowserOnline();
+  const localReady = canExtractLocally();
+  const preferOffline = isOfflineModePreferred();
+
+  // Strategy:
+  //  - Online + no offline preference → Gemini Flash directly (fast path).
+  //  - Online + offline preference + local ready → race local vs Gemini,
+  //    pick whichever lands first inside the deadline.
+  //  - Offline + local ready → on-device only (best effort, slow).
+  //  - Offline + no local → throw so caller can show "no AI available".
+
+  if (online && !preferOffline) {
+    return cloudExtract(prompt, apiKey);
+  }
+
+  if (online && preferOffline && localReady) {
+    const localPromise = extractLocally(prompt).catch(() => null);
+    const localFirst = await raceWithDeadline(localPromise, LOCAL_INFERENCE_DEADLINE_MS);
+    if (localFirst) {
+      lastSource = 'local-gemma';
+      return localFirst;
+    }
+    if (import.meta.env?.DEV) {
+      console.warn('[saathi] local exceeded deadline, falling back to cloud');
+    }
+    return cloudExtract(prompt, apiKey);
+  }
+
+  if (!online && localReady) {
     try {
       const result = await extractLocally(prompt);
       lastSource = 'local-gemma';
       return result;
     } catch (localErr) {
       if (import.meta.env?.DEV) {
-        console.warn('[saathi] local extract failed, trying cloud', localErr);
+        console.warn('[saathi] local extract failed while offline', localErr);
       }
+      // No cloud fallback if truly offline.
+      throw new Error('Offline and on-device model failed. Try again when online.');
     }
   }
 
-  // Tier 2: cloud Gemma (primary) then Gemini (backup)
   if (!apiKey) {
     lastSource = 'none';
     throw new Error(
-      'On-device model unavailable and no API key configured. Set VITE_GEMINI_API_KEY or let the device download Gemma.',
+      'No AI available. Set VITE_GEMINI_API_KEY for cloud or enable on-device Gemma for offline.',
     );
+  }
+
+  return cloudExtract(prompt, apiKey);
+}
+
+async function cloudExtract(prompt: string, apiKey: string): Promise<AIExtractedData> {
+  if (!apiKey) {
+    lastSource = 'none';
+    throw new Error('Gemini API key missing. Set VITE_GEMINI_API_KEY.');
   }
 
   try {
     const result = await callExtractModel(SAATHI_MODELS.primary, prompt, apiKey);
-    lastSource = 'cloud-gemma';
+    lastSource = 'cloud-gemini';
     return result;
   } catch (primaryErr) {
     if (import.meta.env?.DEV) {
-      console.warn('[saathi] primary extract failed, falling back', primaryErr);
+      console.warn('[saathi] primary extract failed, falling back to backup', primaryErr);
     }
     const result = await callExtractModel(SAATHI_MODELS.backup, prompt, apiKey);
     lastSource = 'cloud-gemini';
