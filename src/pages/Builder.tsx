@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { ResumeForm } from '@/builder/components/ResumeForm';
 import { LivePreview } from '@/builder/components/LivePreview';
 import { AICoachPanel } from '@/builder/components/AICoachPanel';
+import { AtsBadge } from '@/builder/components/AtsBadge';
+import { AtsAutoCompleteButton } from '@/builder/components/AtsAutoCompleteButton';
 import { downloadPDF } from '@/utils/pdf';
+import { exportEditablePdf } from '@/builder/pdf/exportEditablePdf';
 import { printResume } from '@/utils/print';
 import { fillDemoResume } from '@/utils/demoData';
 import { useResumeStore } from '@/store/resumeStore';
@@ -79,7 +82,9 @@ export function Builder() {
         className="builder-form flex-1 overflow-y-auto lg:max-h-[calc(100vh-120px)]"
         style={{ borderRight: '1px solid var(--border)' }}
       >
-        <div className="flex items-center justify-end px-4 pt-3 no-print" data-no-print>
+        <div className="flex flex-wrap items-center justify-end gap-2 px-4 pt-3 no-print" data-no-print>
+          <AtsBadge />
+          <AtsAutoCompleteButton />
           <button
             type="button"
             onClick={fillDemoResume}
@@ -118,6 +123,21 @@ export function Builder() {
               style={{ background: 'var(--accent-red)' }}
             >
               Download PDF
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void exportEditablePdf(resume, {
+                  filename: (resume.personal.name || 'resume')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-') + '-editable.pdf',
+                });
+              }}
+              className="min-h-[44px] flex-1 rounded-md px-4 py-2 text-sm font-medium text-white"
+              style={{ background: 'var(--accent-navy)' }}
+              aria-label="Download an editable PDF with AcroForm fields"
+            >
+              Editable PDF
             </button>
             <button
               type="button"

@@ -11,17 +11,17 @@ export function fillDemoResume(): void {
 
   // Personal info
   store.setPersonal({
-    name: 'Ananya Krishnamurthy',
-    email: 'ananya.k@iitb.ac.in',
-    phone: '+91 98765 43210',
-    location: 'Mumbai, Maharashtra',
-    linkedin: 'https://linkedin.com/in/ananyak',
-    github: 'https://github.com/ananyak',
+    name: 'Astha Chandel',
+    email: 'astha@dmj.one',
+    phone: '+91 8219960208',
+    location: 'Solan, Himachal Pradesh',
+    linkedin: 'https://linkedin.com/in/asthachandel',
+    github: 'https://github.com/asthachandel',
   });
 
   // Summary
   store.setSummary(
-    'Frontend developer with 2+ years of production experience building high-traffic React and TypeScript applications at scale. Shipped features serving 12M+ monthly users at Flipkart, improving Core Web Vitals by 35%. Passionate about accessible, performant web experiences backed by clean architecture and rigorous testing.',
+    'BTech CSE (Cybersecurity) student at Shoolini University with hands-on experience shipping production-grade web applications and AI tooling. Built an offline-first, in-browser AI resume platform serving real candidates and employers across India, with measured ATS scoring and HMAC-signed skill verification. Passionate about secure, accessible, performant web experiences backed by clean architecture and rigorous testing.',
   );
 
   // Find sections by type
@@ -40,15 +40,15 @@ export function fillDemoResume(): void {
     store.addEntry(eduSection.id, {
       id: uuid(),
       fields: {
-        institution: 'Indian Institute of Technology Bombay',
-        degree: 'B.Tech in Computer Science and Engineering',
-        duration: '2019 - 2023',
-        gpa: '9.2 / 10.0',
+        institution: 'Shoolini University',
+        degree: 'B.Tech in Computer Science and Engineering (Cybersecurity)',
+        duration: '2022 - 2026',
+        gpa: '8.6 / 10.0',
         coursework:
-          'Data Structures, Algorithms, Operating Systems, Computer Networks, Database Systems, Software Engineering',
+          'Network Security, Cryptography, Web Security, Operating Systems, Data Structures, Machine Learning, Software Engineering',
       },
       bullets: [
-        'Awarded Institute Academic Merit Scholarship for ranking in the top 5% of the department across all four years',
+        'Yogananda School of AI, Computers and Data Sciences, Solan, Himachal Pradesh',
       ],
     });
   }
@@ -58,15 +58,15 @@ export function fillDemoResume(): void {
     store.addEntry(expSection.id, {
       id: uuid(),
       fields: {
-        role: 'Frontend Developer',
-        company: 'Flipkart',
-        duration: 'Jun 2023 - Present',
-        location: 'Bangalore, Karnataka',
+        role: 'Capstone Researcher',
+        company: 'Yogananda School of AI, Computers and Data Sciences',
+        duration: 'Aug 2025 - May 2026',
+        location: 'Shoolini University, Solan',
       },
       bullets: [
-        'Rebuilt the product listing page with React 18 and TypeScript, reducing Largest Contentful Paint from 4.2s to 1.8s for 12M+ monthly users',
-        'Designed and shipped a reusable component library of 40+ accessible UI components adopted by 3 product teams, cutting feature delivery time by 30%',
-        'Implemented server-driven UI rendering pipeline that reduced client bundle size by 22% and improved Time to Interactive by 800ms on low-end devices',
+        'Designed and shipped an offline-first, in-browser AI resume platform with measured ATS scoring and HMAC-signed skill verification, serving real candidate and employer flows end-to-end',
+        'Built a four-layer AI pipeline running entirely client-side: regex + TF-IDF, ONNX E5 embeddings, on-device Gemma 4 reasoning, and Gemini cloud fallback, with progressive enhancement based on device capabilities',
+        'Wrote 536 unit and integration tests covering scoring, conversation flow, and persistence; engineered a single Cloud Run service consolidating nine endpoints behind one Firebase ID token surface',
       ],
     });
   }
@@ -76,15 +76,15 @@ export function fillDemoResume(): void {
     store.addEntry(projSection.id, {
       id: uuid(),
       fields: {
-        name: 'E-Commerce Dashboard',
-        tech: 'React, TypeScript, Zustand, Tailwind CSS',
+        name: 'ResumeAI Bridge',
+        tech: 'React 19, TypeScript, Firebase, Cloud Run, ONNX, Transformers.js',
         description:
-          'Real-time analytics dashboard for e-commerce sellers with live order tracking, revenue charts, and inventory alerts',
-        url: 'https://github.com/ananyak/ecom-dashboard',
+          'Verified-skill bridge between candidates and employers with adaptive in-browser testing, HMAC-signed scorecards, and anti-gaming session controls',
+        url: 'https://astha-capstone.dmj.one',
       },
       bullets: [
-        'Built a responsive dashboard rendering 10,000+ data points with virtualized lists and memoized chart components, maintaining 60fps scroll on mobile devices',
-        'Achieved 98% Lighthouse accessibility score with full keyboard navigation, ARIA live regions for real-time updates, and WCAG 2.2 AA compliance',
+        'Implemented adaptive difficulty scoring across five skill levels with sustained-performance bonus, integrity flags, and per-skill calibration based on the candidate first-test baseline',
+        'Achieved WCAG 2.2 AA compliance with full keyboard navigation, ARIA live regions for real-time updates, and zero data leaving the device for resume building and scoring',
       ],
     });
   }
@@ -136,13 +136,13 @@ export function fillDemoResume(): void {
     store.addEntry(extraSection.id, {
       id: uuid(),
       fields: {
-        role: 'Tech Lead',
-        org: 'Google Developer Student Club, IIT Bombay',
-        duration: '2021 - 2023',
+        role: 'Coordinator',
+        org: 'CSE Department Tech Club, Shoolini University',
+        duration: '2023 - 2025',
         description: '',
       },
       bullets: [
-        'Organized 12 hands-on workshops on web development and cloud computing, reaching 500+ students across campus',
+        'Organized hands-on workshops on web security, cloud deployment, and open source contribution for fellow undergraduates across campus',
       ],
     });
   }

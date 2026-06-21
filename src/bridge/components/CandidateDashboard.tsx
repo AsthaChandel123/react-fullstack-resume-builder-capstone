@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../../firebase/config';
 import { ensureAuth } from '../../firebase/autoAuth';
+import { DEMO_BANNER_TEXT } from '../demoData';
 import type { MatchSignal, BridgeCriteria } from '../types';
 
 interface EmployerReplyData {
@@ -17,6 +18,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function CandidateDashboard() {
   const [matches, setMatches] = useState<MatchSignal[]>([]);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [jobTitles, setJobTitles] = useState<Record<string, string>>({});
@@ -40,7 +42,28 @@ export default function CandidateDashboard() {
       );
 
       unsub = onSnapshot(q, async (snap) => {
-      const data = snap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
+      let data = snap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
+
+      // When the user has no real applications yet, fall back to the live
+      // demo dataset (isDemo:true docs that any signed-in user can read).
+      // This keeps the dashboard lively without inventing client-side data.
+      if (data.length === 0) {
+        try {
+          const demoSnap = await getDocs(
+            query(
+              collection(db, 'matches'),
+              where('isDemo', '==', true),
+              where('demoRole', '==', 'candidate'),
+            ),
+          );
+          data = demoSnap.docs.map((d) => ({ ...d.data(), matchId: d.id } as MatchSignal));
+          setIsDemoMode(true);
+        } catch {
+          // Demo fetch failed silently — dashboard renders empty.
+        }
+      } else {
+        setIsDemoMode(false);
+      }
       setMatches(data);
       setLoading(false);
 
@@ -101,7 +124,16 @@ export default function CandidateDashboard() {
 
   const formatDate = (d: unknown): string => {
     if (!d) return '';
-    const date = d instanceof Date ? d : new Date(d as string);
+    let date: Date;
+    if (d instanceof Date) {
+      date = d;
+    } else if (typeof d === 'object' && d !== null && typeof (d as { toDate?: unknown }).toDate === 'function') {
+      // Firestore Timestamp
+      date = (d as { toDate: () => Date }).toDate();
+    } else {
+      date = new Date(d as string | number);
+    }
+    if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
@@ -122,13 +154,18 @@ export default function CandidateDashboard() {
     );
   }
 
-  if (matches.length === 0) {
+  // matches / jobTitles / replies are all sourced live from Firestore now;
+  // when isDemoMode is true the records came from isDemo:true docs.
+  const displayMatches = matches;
+  const displayJobTitles = jobTitles;
+  const displayReplies = replies;
+
+  if (displayMatches.length === 0) {
     return (
       <div className="max-w-3xl mx-auto text-center py-16">
         <h2 className="text-xl font-bold mb-2">No match signals sent yet</h2>
         <p className="text-gray-500 mb-6">
           Complete a Bridge assessment to send your verified scores to employers.
-          Your scorecard proves your skills through a proctored test, giving employers confidence in your abilities.
         </p>
         <a
           href="/"
@@ -153,16 +190,26 @@ export default function CandidateDashboard() {
         </a>
       </div>
 
+      {isDemoMode && (
+        <div
+          role="note"
+          aria-label="Sample data notice"
+          className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <strong className="font-semibold">Sample data.</strong> {DEMO_BANNER_TEXT}
+        </div>
+      )}
+
       <div className="space-y-4">
-        {matches.map((m) => (
+        {displayMatches.map((m) => (
           <article
             key={m.matchId}
             className="border rounded-lg p-4 hover:shadow-sm transition-shadow"
-            aria-label={`Application for ${jobTitles[m.criteriaCode] || m.criteriaCode}`}
+            aria-label={`Application for ${displayJobTitles[m.criteriaCode] || m.criteriaCode}`}
           >
             <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
               <div>
-                <h3 className="font-semibold text-base">{jobTitles[m.criteriaCode] || m.criteriaCode}</h3>
+                <h3 className="font-semibold text-base">{displayJobTitles[m.criteriaCode] || m.criteriaCode}</h3>
                 <p className="text-xs text-gray-500">Sent {formatDate(m.sentAt)}</p>
               </div>
               <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs capitalize font-medium ${STATUS_STYLES[m.status] || STATUS_STYLES.pending}`}>
@@ -201,10 +248,10 @@ export default function CandidateDashboard() {
             </div>
 
             {/* Employer Reply */}
-            {replies[m.matchId] && (
+            {displayReplies[m.matchId] && (
               <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                 <div className="text-xs font-medium text-green-800 mb-1">Employer Reply</div>
-                <p className="text-sm text-green-900 whitespace-pre-wrap">{replies[m.matchId].message}</p>
+                <p className="text-sm text-green-900 whitespace-pre-wrap">{displayReplies[m.matchId].message}</p>
               </div>
             )}
           </article>

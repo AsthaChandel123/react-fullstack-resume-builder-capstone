@@ -1,8 +1,11 @@
 // /mnt/experiments/astha-resume/src/saathi/components/SaathiChat.tsx
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useResumeStore } from '@/store/resumeStore';
+import { autoCompleteResume } from '@/builder/ats/autoComplete';
+import { computeAtsScore } from '@/builder/ats/atsScore';
+import { exportEditablePdf } from '@/builder/pdf/exportEditablePdf';
 import {
   createConversation,
   processUserInputAsync,
@@ -17,9 +20,11 @@ import { slotsToResume } from '../engine/resumeGenerator';
 import { getResponse } from '../engine/responseBank';
 import { isSpeechSupported, createSpeechInput, type SpeechInput } from '../voice/speechInput';
 import { detectScript, getSpeechLang } from '../voice/languageDetect';
+import { isVoiceCaptureSupported } from '../voice/audioCapture';
 import { ChatBubble } from './ChatBubble';
 import { VoiceButton } from './VoiceButton';
 import { SlotProgress, crossedMilestone } from './SlotProgress';
+import { SaathiVoiceChat } from './SaathiVoiceChat';
 
 /** Sync partial resume data from conversation slots into the store. */
 function syncSlotsToStore(slots: ConversationState['slots']) {
@@ -145,9 +150,38 @@ function AiSourceBadge({ source }: { source: ExtractionSource }) {
 }
 
 function CompletionCTA() {
+  const resume = useResumeStore((s) => s.resume);
+  const setResume = useResumeStore((s) => s.setResume);
+  const [optimized, setOptimized] = useState(false);
+  const [placeholders, setPlaceholders] = useState<string[]>([]);
+
+  // On first mount of the completion card, run autoCompleteResume so the
+  // resume hits ATS 90+ before the user even clicks download. Never invents
+  // facts -- only synthesizes from filled fields + inserts [EDIT: …] markers.
+  useEffect(() => {
+    if (optimized) return;
+    const ac = autoCompleteResume(resume);
+    setResume(ac.resume);
+    setPlaceholders(ac.placeholders);
+    setOptimized(true);
+    // We intentionally run this once when the CTA appears.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const ats = useMemo(() => computeAtsScore(resume), [resume]);
+  const score = Math.round(ats.score);
+
+  function handleEditablePdf() {
+    const filename =
+      (resume.personal.name || 'resume')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-') + '-editable.pdf';
+    void exportEditablePdf(resume, { filename });
+  }
+
   return (
     <div
-      className="mx-auto my-6 max-w-sm animate-fade-in rounded-2xl p-6 text-center"
+      className="mx-auto my-6 max-w-md animate-fade-in rounded-2xl p-6 text-center"
       style={{
         background: 'var(--saathi-accent-teal-light)',
         border: '2px solid var(--saathi-accent-teal)',
@@ -155,17 +189,45 @@ function CompletionCTA() {
       }}
     >
       <p
-        className="mb-4 text-lg font-semibold"
+        className="mb-2 text-lg font-semibold"
         style={{ color: 'var(--saathi-accent-teal)' }}
       >
         Your resume is ready!
       </p>
+      <p
+        className="mb-1 text-sm font-medium"
+        style={{ color: score >= 90 ? '#16a34a' : '#b45309' }}
+      >
+        ATS score: {score} / 100 {score >= 90 ? '(ready for any tracker)' : '(fill the highlighted EDIT placeholders to clear 90)'}
+      </p>
+      {placeholders.length > 0 && (
+        <p
+          className="mx-auto mb-3 max-w-xs text-xs"
+          style={{ color: 'var(--saathi-accent-teal)' }}
+        >
+          {placeholders.length} placeholder{placeholders.length === 1 ? '' : 's'} inserted -- look for{' '}
+          <code>[EDIT: …]</code> and replace with your details.
+        </p>
+      )}
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-        <Link
-          to="/builder/preview"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-5 py-2 text-sm font-medium text-white no-underline"
+        <button
+          type="button"
+          onClick={handleEditablePdf}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-5 py-2 text-sm font-medium text-white"
           style={{
             background: 'var(--saathi-accent-teal)',
+            borderRadius: 'var(--saathi-radius)',
+          }}
+          aria-label="Download an editable PDF"
+        >
+          Download Editable PDF
+        </button>
+        <Link
+          to="/builder/preview"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border px-5 py-2 text-sm font-medium no-underline"
+          style={{
+            borderColor: 'var(--saathi-accent-teal)',
+            color: 'var(--saathi-accent-teal)',
             borderRadius: 'var(--saathi-radius)',
           }}
         >
@@ -206,6 +268,15 @@ function CompletionCTA() {
 }
 
 export function SaathiChat() {
+  const [voiceMode, setVoiceMode] = useState(false);
+  const voiceModeAvailable =
+    isVoiceCaptureSupported() && !!getGeminiApiKey();
+  const voiceDisabledReason = !isVoiceCaptureSupported()
+    ? 'Voice mode needs a modern browser on HTTPS with mic support.'
+    : !getGeminiApiKey()
+      ? 'Set VITE_GEMINI_API_KEY to enable voice mode.'
+      : '';
+
   const [conversation, setConversation] = useState<ConversationState>(() => {
     const saved = loadFromStorage();
     if (saved) return saved;
@@ -410,6 +481,10 @@ export function SaathiChat() {
     setIsListening(true);
   }, [isListening, applyInput, addSystemMessage, conversation.messages]);
 
+  if (voiceMode) {
+    return <SaathiVoiceChat onSwitchToText={() => setVoiceMode(false)} />;
+  }
+
   return (
     <div
       className="flex h-full flex-col"
@@ -427,6 +502,29 @@ export function SaathiChat() {
             phase={conversation.slots.phase}
           />
         </div>
+        <button
+          type="button"
+          onClick={() => setVoiceMode(true)}
+          disabled={!voiceModeAvailable}
+          title={voiceDisabledReason || 'Have a real voice conversation with Saathi'}
+          className="min-h-[32px] rounded-lg border px-3 py-1 text-xs font-medium"
+          style={{
+            borderColor: voiceModeAvailable
+              ? 'var(--saathi-accent-teal)'
+              : 'var(--border)',
+            color: voiceModeAvailable
+              ? 'var(--saathi-accent-teal)'
+              : 'var(--text-muted)',
+            background: voiceModeAvailable
+              ? 'var(--saathi-accent-teal-light)'
+              : 'transparent',
+            opacity: voiceModeAvailable ? 1 : 0.6,
+            cursor: voiceModeAvailable ? 'pointer' : 'not-allowed',
+          }}
+          aria-label="Talk to Saathi using voice"
+        >
+          Talk to Saathi
+        </button>
         <button
           type="button"
           onClick={handleStartOver}

@@ -18,8 +18,10 @@ docs/superpowers/
 # Playwright MCP artifacts
 .playwright-mcp/
 
-# Screenshots from testing
+# Screenshots from ad-hoc testing
 screenshots/
+# …but the curated README screenshot set is intentional
+!docs/screenshots/
 
 # Firebase
 firebase/functions/lib/

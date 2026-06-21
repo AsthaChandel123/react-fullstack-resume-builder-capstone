@@ -11,7 +11,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      injectRegister: 'auto',
+      includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png', 'theme-init.js'],
       manifest: {
         name: 'ResumeAI - Shoolini University',
         short_name: 'ResumeAI',
@@ -27,9 +28,56 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['index.html', 'assets/index-*.js', 'assets/vendor-*.js', 'assets/state-*.js', '**/*.css', '**/*.svg'],
-      maximumFileSizeToCacheInBytes: 500_000, // skip chunks >500KB (ONNX, transformers)
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/__/],
+        globPatterns: [
+          '**/*.{html,js,css,svg,png,webmanifest,woff,woff2,ttf}',
+        ],
+        globIgnores: [
+          '**/ort-wasm-*.wasm',
+        ],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
+          {
+            urlPattern: /\.wasm$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'resumeai-wasm-v1',
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/(huggingface\.co|cdn-lfs\.huggingface\.co|.*\.xethub\.hf\.co)\//i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'resumeai-hf-models-v1',
+              expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 * 180 },
+              cacheableResponse: { statuses: [0, 200] },
+              rangeRequests: true,
+            },
+          },
+          {
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\//i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'resumeai-cdn-v1',
+              expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'resumeai-fonts-v1',
+              expiration: { maxEntries: 16, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
     }),
@@ -45,7 +93,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           state: ['zustand'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/functions'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
         },
       },
     },

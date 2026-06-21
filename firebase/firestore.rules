@@ -22,54 +22,78 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Scorecards: candidates own, employers for their criteria, only Cloud Functions create
+    // Scorecards: candidates own, employers for their criteria.
+    // Demo-tagged docs (written only via the Admin SDK seed script) are
+    // publicly readable so the dashboards have a live, dynamic backing
+    // dataset even before a user has run a real Bridge test.
     match /scorecards/{scorecardId} {
-      allow read: if request.auth != null
-        && (resource.data.candidateId == request.auth.uid
-            || resource.data.employerId == request.auth.uid);
+      allow read: if (request.auth != null
+            && (resource.data.candidateId == request.auth.uid
+                || resource.data.employerId == request.auth.uid))
+        || resource.data.isDemo == true;
       allow create, update, delete: if false; // Cloud Functions only
     }
 
-    // Matches: candidates create, both sides read
+    // Matches: candidates create, both sides read; isDemo docs publicly readable.
     match /matches/{matchId} {
-      allow read: if request.auth != null
-        && (resource.data.candidateId == request.auth.uid
-            || resource.data.employerId == request.auth.uid);
+      allow read: if (request.auth != null
+            && (resource.data.candidateId == request.auth.uid
+                || resource.data.employerId == request.auth.uid))
+        || resource.data.isDemo == true;
       allow create: if false; // Cloud Functions only
       allow update, delete: if false;
     }
 
-    // Replies: employers create, both sides read
+    // Replies: employers create, both sides read; isDemo docs publicly readable.
     match /replies/{replyId} {
-      allow read: if request.auth != null
-        && (resource.data.candidateId == request.auth.uid
-            || resource.data.employerId == request.auth.uid);
+      allow read: if (request.auth != null
+            && (resource.data.candidateId == request.auth.uid
+                || resource.data.employerId == request.auth.uid))
+        || resource.data.isDemo == true;
       allow create, update, delete: if false; // Cloud Functions only
     }
 
-    // Notifications: only the recipient reads, Cloud Functions write
+    // Notifications: only the recipient reads; isDemo docs publicly readable.
     match /notifications/{notifId} {
-      allow read: if request.auth != null
-        && resource.data.recipientId == request.auth.uid;
+      allow read: if (request.auth != null
+            && resource.data.recipientId == request.auth.uid)
+        || resource.data.isDemo == true;
       allow create, update, delete: if false;
     }
 
-    // Devices: only the owner can read/write their own device doc
+    // Devices: only the owner can read/write their own device doc.
+    // Creates must include the owning uid so the update gate can verify it.
+    // Updates may only touch lastSeen and the (additive) emails array,
+    // never reassign ownership.
     match /devices/{deviceId} {
       allow read: if request.auth != null
         && resource.data.uid == request.auth.uid;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['uid', 'deviceId', 'firstSeen', 'lastSeen']);
       allow update: if request.auth != null
-        && resource.data.uid == request.auth.uid;
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['lastSeen', 'emails']);
+      allow delete: if false;
     }
 
-    // Email-device binding: only the owner can read/write their own binding
+    // Email-to-device binding. An email can be on multiple anonymous devices
+    // (work laptop + phone is legitimate), so ownership-by-uid does not fit.
+    // Any authenticated user may add their device to the binding, but the
+    // immutable email field cannot be reassigned and no sibling fields can
+    // be introduced. setDoc(merge:true) re-sends email, so allow it in
+    // affectedKeys but pin its value to the existing record.
     match /emailDevices/{emailHash} {
-      allow read: if request.auth != null
-        && resource.data.uid == request.auth.uid;
-      allow create: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['email', 'devices', 'lastSeen']);
       allow update: if request.auth != null
-        && resource.data.uid == request.auth.uid;
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['email', 'devices', 'lastSeen']);
+      allow delete: if false;
     }
 
     // Mail collection for SendGrid trigger

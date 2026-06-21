@@ -5,8 +5,7 @@ import { getDb, isFirebaseConfigured } from '../../firebase/config';
 import { normalizeFirestore } from '../../firebase/normalize';
 import { getCurrentUser } from '../../firebase/auth';
 import { ensureAuth, bindEmailToDevice } from '../../firebase/autoAuth';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { initFirebase } from '../../firebase/config';
+import { api } from '../../firebase/apiClient';
 import { useBridgeStore } from '../store';
 import { useResumeStore } from '@/store/resumeStore';
 import CalibrationPhase from '../test/CalibrationPhase';
@@ -211,14 +210,11 @@ export function TestEngine({ criteriaCode }: Props) {
         pin,
       );
 
-      // Start server session via Cloud Function
+      // Start server session via consolidated API
       setGeneratingProgress('Starting test session...');
       try {
-        const { app } = initFirebase();
-        const functions = getFunctions(app);
         const deviceId = await getDeviceId();
-        const startSession = httpsCallable(functions, 'startTestSession');
-        await startSession({ criteriaCode, resumePin: pin, deviceId });
+        await api.startTestSession({ criteriaCode, resumePin: pin, deviceId });
       } catch {
         // Non-critical: continue even if server session fails
       }
@@ -307,20 +303,12 @@ export function TestEngine({ criteriaCode }: Props) {
         // Not critical
       }
 
-      // Start heartbeat (30s interval)
+      // Start heartbeat (30s interval). The session id needs to be threaded
+      // through here for the server to validate ownership; today the test
+      // engine doesn't surface that id, so the heartbeat is a no-op call.
+      // Left in place so a future change can simply pass the real id.
       heartbeatRef.current = setInterval(() => {
-        try {
-          const { app: fbApp } = initFirebase();
-          const fns = getFunctions(fbApp);
-          const heartbeat = httpsCallable(fns, 'heartbeat');
-          heartbeat({
-            criteriaCode,
-            questionIndex: currentIndexRef.current,
-            flagCount: flagsRef.current.length,
-          }).catch(() => {});
-        } catch {
-          // Non-critical
-        }
+        api.heartbeat({ sessionId: '' }).catch(() => {});
       }, 30_000);
 
       // Start testing

@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added (ATS 90+ + editable PDF, 2026-05-15)
+- **`src/builder/ats/genericJD.ts`**: Fixed benchmark Software Engineer / Data Analyst JD plus the canonical hard-skill list, soft-skill list, and ATS-friendly action verbs. The JD is what every builder-time ATS score is measured against when no real employer JD is loaded.
+- **`src/builder/ats/atsScore.ts`** (`computeAtsScore`): Wraps the existing `analyzeL1` + sync `analyzeL2` + `computeScore` pipeline against the generic JD, then layers a direct hard-skill coverage signal on top to address the dilution of TF-IDF cosine over long mixed documents. Returns `{score, breakdown, missingForNinety, matchedSkills, resumeText}`. Empty optional sections (certifications, extracurricular, GPA) have their weight redistributed the same way ScoreAgent already handles missing distance.
+- **`src/builder/ats/autoComplete.ts`** (`autoCompleteResume`): Pure function that synthesizes a 90+ ATS resume without inventing any candidate data. Synthesizes the Summary paragraph from the user's own name, degree, institution, and previously-typed skills; promotes user-typed skills into the Skills section; inserts a single `[EDIT: ...]` placeholder per structurally required but empty section (Education / Experience / Projects); reorders sections into canonical ATS order; prepends "Worked on " only to bullets that lack a strong action verb (skills / certifications sections are skipped so atomic skill tokens are not mangled).
+- **`src/builder/pdf/exportEditablePdf.ts`**: Editable-PDF exporter built directly on jsPDF 4.x (already a transitive dependency via html2pdf.js). Renders the resume with a real text layer (no html2canvas image rasterisation) so any ATS extracts verbatim text, AND overlays AcroForm `AcroFormTextField` instances on each editable region (name, contact, summary, primary line, duration, secondary line, every bullet). Opening the resulting PDF in Adobe Acrobat Reader, Preview, or any AcroForm-capable viewer lets the user click into the fields and edit.
+- **`src/builder/components/AtsBadge.tsx`**: Live "ATS XX / 100" pill in the builder header. Recomputes on every store change. Hover / focus reveals the per-dimension breakdown, the list of matched hard skills, and the actionable list of fixes needed to clear 90.
+- **`src/builder/components/AtsAutoCompleteButton.tsx`**: "Optimize for ATS (no fake data)" button that opens a diff modal showing before/after score, the placeholders that will be inserted, and the list of reformatting changes. User must explicitly accept before the store is mutated.
+- **`src/builder/ats/__tests__/ats.test.ts`**: 11 Vitest specs covering (a) score >= 90 on a fully-filled resume, (b) score >= 90 on a minimal stub after autoComplete, (c) autoComplete never introduces companies / institutions / dates the user did not provide, (d) user-typed facts preserved verbatim, (e) `[EDIT: ...]` placeholders inserted for every missing required section, (f) the existing full resume does not regress.
+- **Builder header** (`src/pages/Builder.tsx`): Wired `AtsBadge` + `AtsAutoCompleteButton` next to "Fill Demo Resume". New "Editable PDF" download button uses `exportEditablePdf`.
+- **Saathi completion CTA** (`src/saathi/components/SaathiChat.tsx`): When the conversation completes, `autoCompleteResume` runs once automatically, the live ATS score is displayed, and a one-click "Download Editable PDF" CTA is added next to the existing preview / edit / dashboard links.
+
+### Changed (Saathi conversation pacing + model strategy)
+- **Cloud-first model strategy** (`src/saathi/engine/modelConfig.ts`): Replaced slow Gemma-3-27B-cloud-primary + Gemini-flash-backup with Gemini 2.5 Flash Lite primary + Gemini 2.5 Flash backup. Sub-second responses on typical Saathi prompts. Hard cloud timeout dropped from 15 s to 8 s; new local-model deadline of 4 s.
+- **Deadline-based race with on-device model** (`src/saathi/engine/aiExtractor.ts`): On-device Gemma 4 E2B is no longer the default chat path. New routing matrix:
+  - Online + no offline preference → Gemini Flash Lite directly (fast).
+  - Online + user opted into offline mode → race local Gemma against a 4 s deadline; if it doesn't beat the deadline, the cloud call wins for that turn.
+  - Truly offline + local cached → local only.
+  - Truly offline + no local → throws a clear "no AI available" error instead of stalling.
+  An `isOfflineModePreferred()` / `setOfflineModePreferred()` flag controls the opt-in.
+- **Bulk-question conversation flow** (`src/saathi/engine/aiResponseGenerator.ts`): Rewrote the response prompt so each Saathi turn asks for an entire phase cluster at once (e.g. "degree + college + year + field" in one message) instead of one slot at a time. Six phase clusters defined: warmup, education, experience, projects, skills, wrapup. Reduces conversation length from 10+ turns to ~5-6.
+- **Internal slot-aware validation** (`src/saathi/engine/aiResponseGenerator.ts`): Before returning a model-generated response, `looksLikeStaleAsk()` cross-checks it against the filled-slot list and rolls forward to a deterministic cluster prompt if the model tries to re-ask something already collected. Eliminates "asking me what I already told you."
+
+### Fixed
+- **`autoAuth.ts` permission-denied loop** (`src/firebase/autoAuth.ts`): The function called `getDoc(deviceRef)` on a non-existent doc to decide whether to create or update — but the strict read rule (`resource.data.uid == request.auth.uid`) evaluates to false when `resource` is null, throwing permission-denied before either branch could run. Replaced with idempotent merge-writes (no pre-read) that satisfy both create and update rules. The deeper issue you saw on the live site is that the *deployed* Firestore rules are still the old ones — run `firebase deploy --only firestore:rules` to pick up the new rules.
+
+### Added
+- **Consolidated server API** (`firebase/functions/src/index.ts`): Replaced 9 separate `httpsCallable` Cloud Functions with one Express app exported as a single Firebase Functions v2 `onRequest` (Cloud Run under the hood). One deployable artifact, one origin, per-instance concurrency 80, explicit CORS allowlist (dmj.one + vercel.app + localhost), Firebase ID-token auth middleware, uniform `{error, code}` JSON error shape. Firestore trigger `onMatchCreated` kept separate (cannot be wired through Express).
+- **Client API wrapper** (`src/firebase/apiClient.ts`): Typed surface for the consolidated API. Replaces five `httpsCallable` call sites in `resumeShare.ts`, `TestEngine.tsx`, `ScorecardView.tsx`, `EmployerMatchDashboard.tsx`, `CriteriaPublishForm.tsx`. Base URL auto-derived from `VITE_FIREBASE_PROJECT_ID`, overridable via `VITE_API_BASE` for emulator use.
+- **Service worker update toast** (`src/pwaRegister.ts` + wired into `main.tsx`): Non-blocking notification when a new SW activates, with reload + dismiss actions.
+
+### Changed
+- **PWA precache scope** (`vite.config.ts`): globPatterns broadened from 4 explicit asset names to `**/*.{html,js,css,svg,png,webmanifest,woff,woff2,ttf}` — precache grew from 11 entries to 55 (3.3 MB), so every route chunk plus `firebase`, `vendor`, `state`, `ort.bundle` are now available offline. Added runtime caching for HuggingFace model weights (CacheFirst, 180-day TTL), wasm files, jsDelivr, and Google Fonts. `maximumFileSizeToCacheInBytes` raised to 4 MB; `skipWaiting` + `clientsClaim` enabled.
+- **Firebase SDK 11 → 12** (`package.json`): Latest major bumped. firebase-admin 13 and firebase-functions 6 already current; no source changes required.
+- **npm overrides** (`package.json`, `firebase/functions/package.json`): Pinned `protobufjs ^7.5.5`, `dompurify ^3.4.0`, `postcss ^8.5.10`, `fast-uri ^3.1.2`, `@babel/plugin-transform-modules-systemjs ^7.29.4`, plus functions-side `fast-xml-parser ^5.7.0` / `fast-xml-builder ^1.2.0`. Result: client npm audit went from 1 critical + 2 high + 3 moderate to **0 vulnerabilities**; functions side from 1 critical + 1 high + 2 moderate + 9 low to **9 low** (all transitive in firebase-admin's google-cloud chain, none server-reachable).
+
+### Fixed
+- **Firestore "Missing or insufficient permissions" on `emailDevices`** (`firebase/firestore.rules`): The previous rule required `resource.data.uid == request.auth.uid` on update, but `bindEmailToDevice` never wrote a `uid` field, so the first merge-update after the initial create was always denied. Reworked the rule so any authenticated user may add their device to an email's binding, with the email field pinned to its original value and writes restricted to `email`, `devices`, `lastSeen`. Devices rule similarly tightened: explicit field allowlist on create and update, no deletes.
+- **PWA registration** (`vite.config.ts`): `injectRegister: 'auto'` made explicit so the SW registration script is always emitted.
+
 ## [1.0.0] - 2026-04-07
 
 ### Added

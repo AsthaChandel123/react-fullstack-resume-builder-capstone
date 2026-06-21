@@ -8,9 +8,9 @@
 
 import { useEffect, useState, useCallback, useRef, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { initFirebase, isFirebaseConfigured } from '../../firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
+import { getDb, isFirebaseConfigured } from '../../firebase/config';
+import { api } from '../../firebase/apiClient';
 import { getCurrentUser } from '../../firebase/auth';
 import { useBridgeStore } from '../store';
 import type {
@@ -142,17 +142,11 @@ export function ScorecardView({ criteriaCode }: Props) {
           calibration: testSession!.calibration,
         };
 
-        const { app } = initFirebase();
-        const functions = getFunctions(app);
-        const signFn = httpsCallable<typeof payload, { signature: string }>(
-          functions,
-          'signScorecard',
-        );
-        const result = await signFn(payload);
+        const result = await api.signScorecard(payload);
 
         const signed: SignedScorecard = {
           ...payload,
-          signature: result.data.signature,
+          signature: result.signature,
         };
         setScorecard(signed);
       } catch (err) {
@@ -176,8 +170,7 @@ export function ScorecardView({ criteriaCode }: Props) {
 
     async function checkVersion() {
       try {
-        const { app } = initFirebase();
-        const db = getFirestore(app);
+        const db = getDb();
         const snap = await getDoc(doc(db, 'criteria', criteriaCode));
         if (cancelled || !snap.exists()) return;
 
@@ -211,10 +204,7 @@ export function ScorecardView({ criteriaCode }: Props) {
           ...(contactGithub.trim() && { github: contactGithub.trim() }),
         };
 
-        const { app } = initFirebase();
-        const functions = getFunctions(app);
-        const sendFn = httpsCallable(functions, 'sendMatchSignal');
-        await sendFn({
+        await api.sendMatchSignal({
           criteriaCode,
           scorecardSignature: scorecard.signature,
           contactInfo,

@@ -3,37 +3,62 @@ import { Link } from 'react-router-dom';
 export function Footer() {
   return (
     <footer
-      className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 print:hidden"
-      style={{ background: 'var(--accent-navy)' }}
+      className="mt-20 print:hidden"
+      style={{
+        borderTop: '1px solid var(--border)',
+        background: 'var(--bg-secondary)',
+        color: 'var(--text-secondary)',
+      }}
       role="contentinfo"
     >
-      <div>
-        <div className="text-sm font-bold text-white">ResumeAI</div>
-        <div className="text-xs text-white/80">BTech CSE Capstone Project</div>
-        <div className="mt-1 flex gap-3 text-xs">
-          <Link to="/capstone-report" className="text-white/70 underline hover:text-white">Capstone Report</Link>
-          <Link to="/pitch" className="text-white/70 underline hover:text-white">Pitch Deck</Link>
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-5 text-xs sm:flex-row">
+        <div className="flex items-center gap-3">
+          <img
+            src="/assets/images/shoolini-logo.png"
+            alt="Shoolini University"
+            className="h-6 w-6 rounded bg-white object-contain p-0.5"
+            width={24}
+            height={24}
+          />
+          <span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+              ResumeAI
+            </span>{' '}
+            &middot; built by{' '}
+            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+              Astha Chandel
+            </span>{' '}
+            &middot; Shoolini University
+          </span>
         </div>
-      </div>
-      <div className="text-center">
-        <div className="text-xs text-white/85">Developed by</div>
-        <div className="text-sm font-bold text-white">Astha Chandel</div>
-        <div className="text-xs text-white/75">GF202214559</div>
-      </div>
-      <div className="flex items-center gap-2 text-right">
-        <img
-          src="/assets/images/shoolini-logo.png"
-          alt="Shoolini University"
-          className="h-6 w-6 rounded bg-white object-contain p-0.5"
-          width={24}
-          height={24}
-        />
-        <div>
-          <div className="text-xs font-bold text-white">
-            Shoolini University
-          </div>
-          <div className="text-xs text-white/75">Solan, Himachal Pradesh</div>
-        </div>
+        <nav
+          aria-label="Footer links"
+          className="flex items-center gap-5"
+        >
+          <Link
+            to="/pitch"
+            className="no-underline transition-colors hover:opacity-100"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Pitch
+          </Link>
+          <Link
+            to="/capstone-report"
+            className="no-underline transition-colors hover:opacity-100"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Capstone Report
+          </Link>
+          <a
+            href="https://github.com/divyamohan1993"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="no-underline transition-colors hover:opacity-100"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            GitHub
+          </a>
+        </nav>
       </div>
     </footer>
   );

@@ -10,5 +10,14 @@
       "runtime": "nodejs20"
     }
   ],
-  "hosting": false
+  "hosting": {
+    "public": "hosting-public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "function": { "functionId": "api", "region": "asia-east1" }
+      }
+    ]
+  }
 }
